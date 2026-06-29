@@ -33,11 +33,11 @@ The package uses a `src` layout. Runtime dependencies and development tools are 
 Generate C++ from the example node definition:
 
 ```shell
-uv run struct-gen examples/expressions.ndef
+uv run struct-gen examples/simple_lang.ndef
 ```
 
 The command automatically loads the required `builtin.map` from the same directory, then
-writes `expressions.hpp` and `expressions.cpp` beside `expressions.ndef`. Existing output
+writes `simple_lang.hpp` and `simple_lang.cpp` beside `simple_lang.ndef`. Existing output
 files with those names are replaced. Syntax errors include their source location.
 
 Library users can call `struct_gen.parse_definition_file(path)` for the same combined lookup
@@ -73,9 +73,14 @@ node BinaryExpression
     left: Expr
     right: Expr
 end
+
+node FunctionDefinition
+    code: *Expr
+end
 ```
 
 - `node` declares a future C++ struct. Each field is written as `<name>: <type>`.
+- Prefixing a field type with `*`, as in `code: *Expr`, makes it a repeated field.
 - `choice` declares a sum type. Its alternatives refer to node types or other declared types.
 - `enum` declares a set of new enumerator names rather than references to node types.
 - `end` closes every `node`, `choice`, and `enum` declaration.
@@ -92,8 +97,8 @@ number: long
 ```
 
 Each mapping has a struct-gen type on the left and its C++ type spelling on the right. For a
-definition such as `expressions.ndef`, the parser always looks for `builtin.map` in the same
-directory. See `examples/expressions.ndef` and `examples/builtin.map` for complete examples.
+definition such as `simple_lang.ndef`, the parser always looks for `builtin.map` in the same
+directory. See `examples/simple_lang.ndef` and `examples/builtin.map` for complete examples.
 
 ## Requirements and decisions
 
@@ -112,14 +117,18 @@ This section is maintained as requirements are discovered or changed during deve
 - Definition names are converted from CamelCase to snake_case. Enum names additionally use
   a `_t` suffix. Enum fields are scalar; node and choice fields use `std::unique_ptr`; built-in
   fields use their mapped C++ spelling.
+- Repeated fields use `std::vector` around the otherwise generated field type. For example,
+  `*identifier` becomes `std::vector<std::string>` and `*Expr` becomes
+  `std::vector<std::unique_ptr<expr>>`.
 - Choices are `std::variant` aliases. Node structs are forward-declared before choice aliases,
   then defined afterward. Choice-to-choice dependencies are ordered, and cycles between
   choice aliases are rejected because C++ aliases cannot be forward-declared.
 - Parsing currently validates syntax only. Duplicate declarations, unresolved references,
   naming rules for generated C++, mapping conflicts, and recursive type constraints remain
   future semantic-validation decisions.
-- Generated headers currently include `<memory>`, `<string>`, and `<variant>`. A future mapping
-  format may need to carry required include information for arbitrary mapped C++ types.
+- Generated headers currently include `<memory>`, `<string>`, `<variant>`, and `<vector>`. A
+  future mapping format may need to carry required include information for arbitrary mapped
+  C++ types.
 
 ## Version control
 

@@ -40,6 +40,10 @@ node BinaryExpression
     left: Expr
     right: Expr
 end
+
+node FunctionDefinition
+    code: *Expr
+end
 """
 
     assert parse_definitions(source) == Module(
@@ -53,6 +57,7 @@ end
                 name="BinaryExpression",
                 fields=(Field("op", "Op"), Field("left", "Expr"), Field("right", "Expr")),
             ),
+            Node(name="FunctionDefinition", fields=(Field("code", "Expr", multiple=True),)),
         ),
     )
 

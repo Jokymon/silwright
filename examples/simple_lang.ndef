@@ -21,3 +21,7 @@ node BinaryExpression
     left: Expr
     right: Expr
 end
+
+node FunctionDefinition
+    code: *Expr
+end

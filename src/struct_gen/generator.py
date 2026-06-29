@@ -52,7 +52,8 @@ def generate_cpp(parsed: ParsedDefinitionFile, header_name: str) -> GeneratedCpp
         "#pragma once\n\n"
         "#include <memory>\n"
         "#include <string>\n"
-        "#include <variant>\n\n"
+        "#include <variant>\n"
+        "#include <vector>\n\n"
         f"namespace {module.name} {{\n\n"
         f"{rendered_body}\n\n"
         f"}}  // namespace {module.name}\n"
@@ -127,6 +128,8 @@ def _render_node(
                 field_type = f"std::unique_ptr<{cpp_name(target.name)}>"
             else:
                 raise GenerationError(f"unknown field type {field.type_name!r} in {item.name}")
+        if field.multiple:
+            field_type = f"std::vector<{field_type}>"
         fields.append(f"    {field_type} {field.name};")
     members = "\n".join(fields)
     return f"struct {cpp_name(item.name)} {{\n{members}\n}};"

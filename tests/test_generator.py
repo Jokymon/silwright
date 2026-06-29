@@ -30,6 +30,13 @@ def _expressions() -> ParsedDefinitionFile:
                     "BinaryExpression",
                     (Field("op", "Op"), Field("left", "Expr"), Field("right", "Expr")),
                 ),
+                Node(
+                    "FunctionDefinition",
+                    (
+                        Field("names", "identifier", multiple=True),
+                        Field("code", "Expr", multiple=True),
+                    ),
+                ),
             ),
         ),
         type_mappings=(TypeMapping("identifier", "std::string"), TypeMapping("number", "long")),
@@ -57,6 +64,9 @@ def test_generate_cpp() -> None:
     assert "long value;" in generated.header
     assert "op_t op;" in generated.header
     assert "std::unique_ptr<expr> left;" in generated.header
+    assert "std::vector<std::string> names;" in generated.header
+    assert "std::vector<std::unique_ptr<expr>> code;" in generated.header
+    assert "#include <vector>" in generated.header
     assert generated.source == '#include "expressions.hpp"\n'
 
 
