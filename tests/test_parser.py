@@ -69,6 +69,27 @@ def test_parse_type_mappings() -> None:
     )
 
 
+@pytest.mark.parametrize(
+    "options",
+    (
+        "Variable | Number | BinaryExpression",
+        "Variable\n    | Number\n    | BinaryExpression",
+        "Variable |\n    Number |\n    BinaryExpression",
+    ),
+)
+def test_choice_options_allow_flexible_line_breaks(options: str) -> None:
+    source = f"module example\nchoice Expr\n    {options}\nend\n"
+
+    assert parse_definitions(source) == Module(
+        "example", (Choice("Expr", ("Variable", "Number", "BinaryExpression")),)
+    )
+
+
+def test_choice_rejects_separator_without_following_option() -> None:
+    with pytest.raises(UnexpectedInput):
+        parse_definitions("module example\nchoice Expr\n    Variable |\nend\n")
+
+
 def test_comments_and_blank_lines_between_declarations_are_ignored() -> None:
     source = """\
 # Module comment

@@ -1,0 +1,40 @@
+module lir
+
+node Number
+    number: number
+    assigned_type: type
+end
+
+node CharLiteral
+    ch: character
+end
+
+node BoolLiteral
+    value: boolean
+end
+
+node StringLiteral
+    table_index: index
+    size: number
+end
+
+node IfExpression
+    condition: Expr
+    then_code: *Expr
+    else_code: *Expr
+    assigned_type: type
+end
+
+node UnaryExpression
+    expr: Expr
+    assigned_type: type
+end
+
+choice Expr
+    Number
+    | CharLiteral
+    | BoolLiteral
+    | StringLiteral
+    | IfExpression
+    | UnaryExpression
+end

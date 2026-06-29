@@ -1,2 +1,6 @@
 identifier: std::string
-number: long
+number: long long
+boolean: bool
+type: type_id
+character: uint32_t
+index: size_t

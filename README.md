@@ -82,6 +82,8 @@ end
 - `node` declares a future C++ struct. Each field is written as `<name>: <type>`.
 - Prefixing a field type with `*`, as in `code: *Expr`, makes it a repeated field.
 - `choice` declares a sum type. Its alternatives refer to node types or other declared types.
+- Choice alternatives may span lines. The `|` separator may be placed after the preceding
+  option or at the start of the following option's line.
 - `enum` declares a set of new enumerator names rather than references to node types.
 - `end` closes every `node`, `choice`, and `enum` declaration.
 - Names currently use ASCII letters, digits, and underscores and cannot start with a digit.

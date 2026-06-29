@@ -22,12 +22,14 @@ _NDEF_GRAMMAR = r"""
     ?definition: node_def | choice_def | enum_def
     node_def: "node" NAME _NL+ field* "end" _NL+
     field: NAME ":" STAR? NAME _NL+
-    choice_def: "choice" NAME _NL+ option_list _NL+ "end" _NL+
+    choice_def: "choice" NAME _NL+ choice_option_list _NL+ "end" _NL+
     enum_def: "enum" NAME _NL+ option_list _NL+ "end" _NL+
     option_list: NAME ("|" NAME)*
+    choice_option_list: NAME (_CHOICE_SEPARATOR NAME)*
 
     NAME: /[A-Za-z_][A-Za-z0-9_]*/
     STAR: "*"
+    _CHOICE_SEPARATOR.2: /\|[ \t]*(?:\r?\n[ \t]*)?|\r?\n[ \t]*\|[ \t]*(?:\r?\n[ \t]*)?/
     _NL: /\r?\n/
     %import common.WS_INLINE
     %ignore WS_INLINE
@@ -70,6 +72,9 @@ class _NodeTransformer(Transformer[Token, object]):
         return Node(name=_text(name), fields=tuple(fields))
 
     def option_list(self, *names: Token) -> tuple[str, ...]:
+        return tuple(map(_text, names))
+
+    def choice_option_list(self, *names: Token) -> tuple[str, ...]:
         return tuple(map(_text, names))
 
     def choice_def(self, name: Token, alternatives: tuple[str, ...]) -> Choice:
