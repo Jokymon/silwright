@@ -10,6 +10,7 @@ class Field:
     name: str
     type_name: str
     multiple: bool = False
+    by_value: bool = False
 
 
 @dataclass(frozen=True, slots=True)

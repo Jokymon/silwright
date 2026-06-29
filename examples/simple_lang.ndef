@@ -22,6 +22,17 @@ node BinaryExpression
     right: Expr
 end
 
+node FunctionSignature
+    return_type: identifier
+    parameter_types: *identifier
+end
+
+node FunctionHead
+    name: identifier
+    signature: value FunctionSignature
+end
+
 node FunctionDefinition
+    head: value FunctionHead
     code: *Expr
 end

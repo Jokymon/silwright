@@ -97,3 +97,46 @@ def test_cyclic_choice_dependencies_are_rejected() -> None:
 
     with pytest.raises(GenerationError, match="cyclic choice dependency"):
         generate_cpp(parsed, "bad.hpp")
+
+
+def test_value_fields_are_embedded_and_dependency_ordered() -> None:
+    parsed = ParsedDefinitionFile(
+        Module(
+            "functions",
+            (
+                Node(
+                    "FunctionDefinition",
+                    (
+                        Field("head", "FunctionHead", by_value=True),
+                        Field("parameters", "Parameter", multiple=True, by_value=True),
+                    ),
+                ),
+                Node("FunctionHead", (Field("name", "identifier"),)),
+                Node("Parameter", (Field("name", "identifier"),)),
+            ),
+        ),
+        (TypeMapping("identifier", "std::string"),),
+    )
+
+    header = generate_cpp(parsed, "functions.hpp").header
+
+    assert "function_head head;" in header
+    assert "std::vector<parameter> parameters;" in header
+    assert header.index("struct function_head {") < header.index("struct function_definition {")
+    assert header.index("struct parameter {") < header.index("struct function_definition {")
+
+
+def test_recursive_value_fields_are_rejected() -> None:
+    parsed = ParsedDefinitionFile(
+        Module(
+            "bad",
+            (
+                Node("First", (Field("second", "Second", by_value=True),)),
+                Node("Second", (Field("first", "First", by_value=True),)),
+            ),
+        ),
+        (),
+    )
+
+    with pytest.raises(GenerationError, match="cyclic value dependency"):
+        generate_cpp(parsed, "bad.hpp")

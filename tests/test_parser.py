@@ -90,6 +90,37 @@ def test_choice_rejects_separator_without_following_option() -> None:
         parse_definitions("module example\nchoice Expr\n    Variable |\nend\n")
 
 
+def test_value_modifier_parses_for_single_and_repeated_fields() -> None:
+    source = """\
+module example
+node Function
+    head: value FunctionHead
+    parameters: *value Parameter
+end
+"""
+
+    assert parse_definitions(source) == Module(
+        "example",
+        (
+            Node(
+                "Function",
+                (
+                    Field("head", "FunctionHead", by_value=True),
+                    Field("parameters", "Parameter", multiple=True, by_value=True),
+                ),
+            ),
+        ),
+    )
+
+
+def test_value_remains_valid_as_a_field_name() -> None:
+    source = "module example\nnode Number\n    value: number\nend\n"
+
+    assert parse_definitions(source) == Module(
+        "example", (Node("Number", (Field("value", "number"),)),)
+    )
+
+
 def test_comments_and_blank_lines_between_declarations_are_ignored() -> None:
     source = """\
 # Module comment

@@ -75,12 +75,16 @@ node BinaryExpression
 end
 
 node FunctionDefinition
+    head: value FunctionHead
     code: *Expr
 end
 ```
 
 - `node` declares a future C++ struct. Each field is written as `<name>: <type>`.
 - Prefixing a field type with `*`, as in `code: *Expr`, makes it a repeated field.
+- Prefixing a field type with `value`, as in `head: value FunctionHead`, embeds node or choice
+  types directly instead of using `std::unique_ptr`. The modifiers compose as
+  `parameters: *value Parameter` for `std::vector<parameter>`.
 - `choice` declares a sum type. Its alternatives refer to node types or other declared types.
 - Choice alternatives may span lines. The `|` separator may be placed after the preceding
   option or at the start of the following option's line.
@@ -122,6 +126,9 @@ This section is maintained as requirements are discovered or changed during deve
 - Repeated fields use `std::vector` around the otherwise generated field type. For example,
   `*identifier` becomes `std::vector<std::string>` and `*Expr` becomes
   `std::vector<std::unique_ptr<expr>>`.
+- Value fields require complete C++ types. The generator dependency-orders affected structs
+  and rejects recursive value-member cycles. Built-in and enum fields are already values, so
+  applying `value` to them has no additional effect.
 - Choices are `std::variant` aliases. Node structs are forward-declared before choice aliases,
   then defined afterward. Choice-to-choice dependencies are ordered, and cycles between
   choice aliases are rejected because C++ aliases cannot be forward-declared.

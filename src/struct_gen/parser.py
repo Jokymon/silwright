@@ -21,7 +21,7 @@ _NDEF_GRAMMAR = r"""
 
     ?definition: node_def | choice_def | enum_def
     node_def: "node" NAME _NL+ field* "end" _NL+
-    field: NAME ":" STAR? NAME _NL+
+    field: NAME ":" STAR? VALUE? NAME _NL+
     choice_def: "choice" NAME _NL+ choice_option_list _NL+ "end" _NL+
     enum_def: "enum" NAME _NL+ option_list _NL+ "end" _NL+
     option_list: NAME ("|" NAME)*
@@ -29,6 +29,7 @@ _NDEF_GRAMMAR = r"""
 
     NAME: /[A-Za-z_][A-Za-z0-9_]*/
     STAR: "*"
+    VALUE.2: "value"
     _CHOICE_SEPARATOR.2: /\|[ \t]*(?:\r?\n[ \t]*)?|\r?\n[ \t]*\|[ \t]*(?:\r?\n[ \t]*)?/
     _NL: /\r?\n/
     %import common.WS_INLINE
@@ -62,11 +63,14 @@ class _NodeTransformer(Transformer[Token, object]):
         return _text(name)
 
     def field(self, name: Token, *type_parts: Token) -> Field:
-        if len(type_parts) == 1:
-            return Field(name=_text(name), type_name=_text(type_parts[0]))
-        if len(type_parts) == 2:
-            return Field(name=_text(name), type_name=_text(type_parts[1]), multiple=True)
-        raise AssertionError("field must contain a type and an optional '*' modifier")
+        type_name = _text(type_parts[-1])
+        modifiers = {part.type for part in type_parts[:-1]}
+        return Field(
+            name=_text(name),
+            type_name=type_name,
+            multiple="STAR" in modifiers,
+            by_value="VALUE" in modifiers,
+        )
 
     def node_def(self, name: Token, *fields: Field) -> Node:
         return Node(name=_text(name), fields=tuple(fields))

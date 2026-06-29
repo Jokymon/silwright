@@ -45,7 +45,8 @@ def generate_cpp(parsed: ParsedDefinitionFile, header_name: str) -> GeneratedCpp
     body.extend(_render_choice(item, declarations) for item in choices)
     if choices:
         body.append("")
-    body.extend(_render_node(item, declarations, mappings) for item in nodes)
+    ordered_nodes = _order_nodes(nodes, declarations)
+    body.extend(_render_node(item, declarations, mappings) for item in ordered_nodes)
 
     rendered_body = "\n".join(body).rstrip()
     header = (
@@ -125,7 +126,8 @@ def _render_node(
             if isinstance(target, Enum):
                 field_type = f"{cpp_name(target.name)}_t"
             elif isinstance(target, (Node, Choice)):
-                field_type = f"std::unique_ptr<{cpp_name(target.name)}>"
+                named_type = cpp_name(target.name)
+                field_type = named_type if field.by_value else f"std::unique_ptr<{named_type}>"
             else:
                 raise GenerationError(f"unknown field type {field.type_name!r} in {item.name}")
         if field.multiple:
@@ -162,4 +164,49 @@ def _order_choices(
 
     for choice in choices.values():
         visit(choice)
+    return tuple(ordered)
+
+
+def _order_nodes(
+    nodes: tuple[Node, ...],
+    declarations: dict[str, Node | Choice | Enum],
+) -> tuple[Node, ...]:
+    ordered: list[Node] = []
+    visiting: set[str] = set()
+    visited: set[str] = set()
+
+    def choice_node_dependencies(choice: Choice, seen: set[str]) -> tuple[Node, ...]:
+        if choice.name in seen:
+            return ()
+        seen.add(choice.name)
+        dependencies: list[Node] = []
+        for alternative in choice.alternatives:
+            target = declarations.get(alternative)
+            if isinstance(target, Node):
+                dependencies.append(target)
+            elif isinstance(target, Choice):
+                dependencies.extend(choice_node_dependencies(target, seen))
+        return tuple(dependencies)
+
+    def visit(node: Node) -> None:
+        if node.name in visiting:
+            raise GenerationError(f"cyclic value dependency involving {node.name}")
+        if node.name in visited:
+            return
+        visiting.add(node.name)
+        for field in node.fields:
+            if not field.by_value:
+                continue
+            target = declarations.get(field.type_name)
+            if isinstance(target, Node):
+                visit(target)
+            elif isinstance(target, Choice):
+                for dependency in choice_node_dependencies(target, set()):
+                    visit(dependency)
+        visiting.remove(node.name)
+        visited.add(node.name)
+        ordered.append(node)
+
+    for node in nodes:
+        visit(node)
     return tuple(ordered)
