@@ -1,8 +1,6 @@
 # struct-gen
 
-`struct-gen` parses declarative node descriptions that will be used to generate C++ data
-types. The current milestone covers the language, parser, syntax model, and tests. C++ code
-generation is intentionally deferred.
+`struct-gen` parses declarative node descriptions and generates C++ data types.
 
 ## Setup
 
@@ -32,15 +30,15 @@ The package uses a `src` layout. Runtime dependencies and development tools are 
 
 ## Usage
 
-Parse and validate the example node definition from the command line:
+Generate C++ from the example node definition:
 
 ```shell
 uv run struct-gen examples/expressions.ndef
 ```
 
-The command automatically loads a file named `builtin.map` from the same directory as the
-given `.ndef` file. That file is required. The command prints the module name, definition
-count, and mapping count when parsing succeeds. Syntax errors include their source location.
+The command automatically loads the required `builtin.map` from the same directory, then
+writes `expressions.hpp` and `expressions.cpp` beside `expressions.ndef`. Existing output
+files with those names are replaced. Syntax errors include their source location.
 
 Library users can call `struct_gen.parse_definition_file(path)` for the same combined lookup
 behavior. `struct_gen.parse_definitions(text)` and `struct_gen.parse_type_mappings(text)` are
@@ -109,11 +107,19 @@ This section is maintained as requirements are discovered or changed during deve
   name. This distinction prevents enum values from being mistaken for type references.
 - Built-in types and their C++ spellings live in the required `builtin.map` file beside each
   parsed `.ndef` file.
+- Generated `.hpp` and `.cpp` files use the `.ndef` basename and are written beside it. The
+  module name is used directly as the C++ namespace.
+- Definition names are converted from CamelCase to snake_case. Enum names additionally use
+  a `_t` suffix. Enum fields are scalar; node and choice fields use `std::unique_ptr`; built-in
+  fields use their mapped C++ spelling.
+- Choices are `std::variant` aliases. Node structs are forward-declared before choice aliases,
+  then defined afterward. Choice-to-choice dependencies are ordered, and cycles between
+  choice aliases are rejected because C++ aliases cannot be forward-declared.
 - Parsing currently validates syntax only. Duplicate declarations, unresolved references,
   naming rules for generated C++, mapping conflicts, and recursive type constraints remain
   future semantic-validation decisions.
-- The C++ representation of choices and field ownership/reference semantics are not yet
-  specified. No backend generation is part of the current milestone.
+- Generated headers currently include `<memory>`, `<string>`, and `<variant>`. A future mapping
+  format may need to carry required include information for arbitrary mapped C++ types.
 
 ## Version control
 
