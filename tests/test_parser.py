@@ -7,7 +7,9 @@ from struct_gen import (
     Field,
     Module,
     Node,
+    ParsedDefinitionFile,
     TypeMapping,
+    parse_definition_file,
     parse_definitions,
     parse_type_mappings,
 )
@@ -82,3 +84,22 @@ def test_module_declaration_is_required() -> None:
 def test_unclosed_definition_is_rejected() -> None:
     with pytest.raises(UnexpectedInput):
         parse_definitions("module example\nnode Variable\n    name: identifier\n")
+
+
+def test_parse_definition_file_loads_sibling_builtin_map(tmp_path) -> None:
+    definition_path = tmp_path / "example.ndef"
+    definition_path.write_text("module example\nnode Value\n    value: number\nend\n")
+    (tmp_path / "builtin.map").write_text("number: long\n")
+
+    assert parse_definition_file(definition_path) == ParsedDefinitionFile(
+        module=Module("example", (Node("Value", (Field("value", "number"),)),)),
+        type_mappings=(TypeMapping("number", "long"),),
+    )
+
+
+def test_parse_definition_file_requires_sibling_builtin_map(tmp_path) -> None:
+    definition_path = tmp_path / "example.ndef"
+    definition_path.write_text("module example\n")
+
+    with pytest.raises(FileNotFoundError, match=r"builtin\.map"):
+        parse_definition_file(definition_path)

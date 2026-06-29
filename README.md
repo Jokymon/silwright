@@ -38,9 +38,13 @@ Parse and validate the example node definition from the command line:
 uv run struct-gen examples/expressions.ndef
 ```
 
-The command prints the module name and definition count when parsing succeeds. Syntax errors
-include their source location. Library users can call `struct_gen.parse_definitions(text)`
-for `.ndef` content and `struct_gen.parse_type_mappings(text)` for `.map` content.
+The command automatically loads a file named `builtin.map` from the same directory as the
+given `.ndef` file. That file is required. The command prints the module name, definition
+count, and mapping count when parsing succeeds. Syntax errors include their source location.
+
+Library users can call `struct_gen.parse_definition_file(path)` for the same combined lookup
+behavior. `struct_gen.parse_definitions(text)` and `struct_gen.parse_type_mappings(text)` are
+available when parsing already-loaded content independently.
 
 ## Definition language
 
@@ -89,8 +93,9 @@ identifier: std::string
 number: long
 ```
 
-Each mapping has a struct-gen type on the left and its C++ type spelling on the right. See
-`examples/expressions.ndef` and `examples/builtin.map` for complete examples.
+Each mapping has a struct-gen type on the left and its C++ type spelling on the right. For a
+definition such as `expressions.ndef`, the parser always looks for `builtin.map` in the same
+directory. See `examples/expressions.ndef` and `examples/builtin.map` for complete examples.
 
 ## Requirements and decisions
 
@@ -102,7 +107,8 @@ This section is maintained as requirements are discovered or changed during deve
 - A module may contain `node`, `choice`, and `enum` declarations in source order.
 - Node fields and choice alternatives reference types by name. Enums introduce values by
   name. This distinction prevents enum values from being mistaken for type references.
-- Built-in types and their C++ spellings live in separate `.map` files.
+- Built-in types and their C++ spellings live in the required `builtin.map` file beside each
+  parsed `.ndef` file.
 - Parsing currently validates syntax only. Duplicate declarations, unresolved references,
   naming rules for generated C++, mapping conflicts, and recursive type constraints remain
   future semantic-validation decisions.

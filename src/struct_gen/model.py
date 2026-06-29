@@ -52,3 +52,11 @@ class TypeMapping:
 
     source_type: str
     cpp_type: str
+
+
+@dataclass(frozen=True, slots=True)
+class ParsedDefinitionFile:
+    """A parsed module and the built-in mappings resolved for its directory."""
+
+    module: Module
+    type_mappings: tuple[TypeMapping, ...]

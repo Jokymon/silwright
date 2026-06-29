@@ -1,8 +1,19 @@
 """Parsers for node definition and built-in type mapping files."""
 
+from pathlib import Path
+
 from lark import Lark, Token, Transformer, v_args
 
-from struct_gen.model import Choice, Definition, Enum, Field, Module, Node, TypeMapping
+from struct_gen.model import (
+    Choice,
+    Definition,
+    Enum,
+    Field,
+    Module,
+    Node,
+    ParsedDefinitionFile,
+    TypeMapping,
+)
 
 _NDEF_GRAMMAR = r"""
     start: _NL* module_decl _NL+ definition*
@@ -88,6 +99,17 @@ def parse_type_mappings(source: str) -> tuple[TypeMapping, ...]:
     assert isinstance(result, tuple)
     assert all(isinstance(mapping, TypeMapping) for mapping in result)
     return result
+
+
+def parse_definition_file(path: Path) -> ParsedDefinitionFile:
+    """Parse a .ndef file and the sibling builtin.map file."""
+    if path.suffix != ".ndef":
+        raise ValueError(f"definition file must use the .ndef suffix: {path}")
+
+    mapping_path = path.parent / "builtin.map"
+    module = parse_definitions(path.read_text(encoding="utf-8"))
+    mappings = parse_type_mappings(mapping_path.read_text(encoding="utf-8"))
+    return ParsedDefinitionFile(module=module, type_mappings=mappings)
 
 
 def _terminated(source: str) -> str:
