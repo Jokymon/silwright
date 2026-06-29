@@ -8,7 +8,9 @@ license = "MIT"
 authors = [
     { name = "struct-gen contributors" },
 ]
-dependencies = []
+dependencies = [
+    "lark>=1.3.1",
+]
 
 [project.scripts]
 struct-gen = "struct_gen.cli:main"
@@ -39,4 +41,3 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 python_version = "3.14"
 strict = true
 packages = ["struct_gen"]
-

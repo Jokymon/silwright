@@ -1,7 +1,15 @@
-"""Generate C++ code from node descriptions."""
+"""Parse node descriptions used to generate C++ code."""
 
-from struct_gen.generator import generate_header
-from struct_gen.model import Field, Node
+from struct_gen.model import Choice, Enum, Field, Module, Node, TypeMapping
+from struct_gen.parser import parse_definitions, parse_type_mappings
 
-__all__ = ["Field", "Node", "generate_header"]
-
+__all__ = [
+    "Choice",
+    "Enum",
+    "Field",
+    "Module",
+    "Node",
+    "TypeMapping",
+    "parse_definitions",
+    "parse_type_mappings",
+]

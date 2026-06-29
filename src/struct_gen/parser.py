@@ -1,0 +1,95 @@
+"""Parsers for node definition and built-in type mapping files."""
+
+from lark import Lark, Token, Transformer, v_args
+
+from struct_gen.model import Choice, Definition, Enum, Field, Module, Node, TypeMapping
+
+_NDEF_GRAMMAR = r"""
+    start: _NL* module_decl _NL+ definition*
+    module_decl: "module" NAME
+
+    ?definition: node_def | choice_def | enum_def
+    node_def: "node" NAME _NL+ field* "end" _NL+
+    field: NAME ":" NAME _NL+
+    choice_def: "choice" NAME _NL+ option_list _NL+ "end" _NL+
+    enum_def: "enum" NAME _NL+ option_list _NL+ "end" _NL+
+    option_list: NAME ("|" NAME)*
+
+    NAME: /[A-Za-z_][A-Za-z0-9_]*/
+    _NL: /\r?\n/
+    %import common.WS_INLINE
+    %ignore WS_INLINE
+    %ignore /#[^\r\n]*/
+"""
+
+_MAP_GRAMMAR = r"""
+    start: _NL* mapping*
+    mapping: NAME ":" CPP_TYPE _NL+
+
+    NAME: /[A-Za-z_][A-Za-z0-9_]*/
+    CPP_TYPE: /[^\r\n#]+/
+    _NL: /\r?\n/
+    %import common.WS_INLINE
+    %ignore WS_INLINE
+    %ignore /#[^\r\n]*/
+"""
+
+_NDEF_PARSER = Lark(_NDEF_GRAMMAR, parser="lalr")
+_MAP_PARSER = Lark(_MAP_GRAMMAR, parser="lalr")
+
+
+def _text(token: Token) -> str:
+    return str(token)
+
+
+@v_args(inline=True)
+class _NodeTransformer(Transformer[Token, object]):
+    def module_decl(self, name: Token) -> str:
+        return _text(name)
+
+    def field(self, name: Token, type_name: Token) -> Field:
+        return Field(name=_text(name), type_name=_text(type_name))
+
+    def node_def(self, name: Token, *fields: Field) -> Node:
+        return Node(name=_text(name), fields=tuple(fields))
+
+    def option_list(self, *names: Token) -> tuple[str, ...]:
+        return tuple(map(_text, names))
+
+    def choice_def(self, name: Token, alternatives: tuple[str, ...]) -> Choice:
+        return Choice(name=_text(name), alternatives=alternatives)
+
+    def enum_def(self, name: Token, values: tuple[str, ...]) -> Enum:
+        return Enum(name=_text(name), values=values)
+
+    def start(self, module_name: str, *definitions: Definition) -> Module:
+        return Module(name=module_name, definitions=tuple(definitions))
+
+
+@v_args(inline=True)
+class _MappingTransformer(Transformer[Token, object]):
+    def mapping(self, source_type: Token, cpp_type: Token) -> TypeMapping:
+        return TypeMapping(source_type=_text(source_type), cpp_type=_text(cpp_type).strip())
+
+    def start(self, *mappings: TypeMapping) -> tuple[TypeMapping, ...]:
+        return tuple(mappings)
+
+
+def parse_definitions(source: str) -> Module:
+    """Parse the contents of one .ndef file."""
+    result = _NodeTransformer().transform(_NDEF_PARSER.parse(_terminated(source)))
+    assert isinstance(result, Module)
+    return result
+
+
+def parse_type_mappings(source: str) -> tuple[TypeMapping, ...]:
+    """Parse the contents of one .map file."""
+    result = _MappingTransformer().transform(_MAP_PARSER.parse(_terminated(source)))
+    assert isinstance(result, tuple)
+    assert all(isinstance(mapping, TypeMapping) for mapping in result)
+    return result
+
+
+def _terminated(source: str) -> str:
+    """Normalize the grammar's line-oriented input terminator."""
+    return source if source.endswith(("\n", "\r")) else f"{source}\n"

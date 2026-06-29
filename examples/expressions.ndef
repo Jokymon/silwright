@@ -1,0 +1,23 @@
+module expressions
+
+node Variable
+    name: identifier
+end
+
+node Number
+    value: number
+end
+
+choice Expr
+    Variable | Number | BinaryExpression
+end
+
+enum Op
+    Add | Subtract | Multiply | Divide | Modulus
+end
+
+node BinaryExpression
+    op: Op
+    left: Expr
+    right: Expr
+end

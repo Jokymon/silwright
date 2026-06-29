@@ -1,28 +1,113 @@
 # struct-gen
 
-`struct-gen` is a Python 3.14 project for generating C++ code from declarative node
-descriptions.
+`struct-gen` parses declarative node descriptions that will be used to generate C++ data
+types. The current milestone covers the language, parser, syntax model, and tests. C++ code
+generation is intentionally deferred.
 
 ## Setup
 
-Install [uv](https://docs.astral.sh/uv/), then run:
+Prerequisites:
+
+- Git
+- [uv](https://docs.astral.sh/uv/)
+- Python 3.14 or newer; `uv` can install the requested interpreter when necessary
+
+Clone the repository and create the locked development environment:
 
 ```shell
 uv sync
+```
+
+Run all project checks:
+
+```shell
 uv run pytest
 uv run ruff check .
 uv run mypy
 ```
 
-Run the initial example generator:
+The package uses a `src` layout. Runtime dependencies and development tools are declared in
+`pyproject.toml`; exact resolved versions are committed in `uv.lock`. Add dependencies with
+`uv add <package>` and development dependencies with `uv add --dev <package>`.
+
+## Usage
+
+Parse and validate the example node definition from the command line:
 
 ```shell
-uv run struct-gen ExampleNode
+uv run struct-gen examples/expressions.ndef
 ```
 
-The current implementation is deliberately small: it establishes the domain model,
-generator boundary, command-line entry point, and test setup on which description parsing
-and richer C++ generation can be built.
+The command prints the module name and definition count when parsing succeeds. Syntax errors
+include their source location. Library users can call `struct_gen.parse_definitions(text)`
+for `.ndef` content and `struct_gen.parse_type_mappings(text)` for `.map` content.
+
+## Definition language
+
+One `.ndef` file describes one module. Its required first declaration is `module <name>`;
+the module name is intended to become the generated C++ namespace.
+
+```text
+module expressions
+
+node Variable
+    name: identifier
+end
+
+node Number
+    value: number
+end
+
+choice Expr
+    Variable | Number
+end
+
+enum Op
+    Add | Subtract | Multiply | Divide | Modulus
+end
+
+node BinaryExpression
+    op: Op
+    left: Expr
+    right: Expr
+end
+```
+
+- `node` declares a future C++ struct. Each field is written as `<name>: <type>`.
+- `choice` declares a sum type. Its alternatives refer to node types or other declared types.
+- `enum` declares a set of new enumerator names rather than references to node types.
+- `end` closes every `node`, `choice`, and `enum` declaration.
+- Names currently use ASCII letters, digits, and underscores and cannot start with a digit.
+- `#` starts a line comment. Blank lines are accepted around declarations; blank or
+  comment-only lines inside declaration bodies are not currently supported. Horizontal
+  spacing is insignificant.
+
+Built-in field types are mapped separately in a `.map` file:
+
+```text
+identifier: std::string
+number: long
+```
+
+Each mapping has a struct-gen type on the left and its C++ type spelling on the right. See
+`examples/expressions.ndef` and `examples/builtin.map` for complete examples.
+
+## Requirements and decisions
+
+This section is maintained as requirements are discovered or changed during development.
+
+- The project requires Python 3.14 or newer and uses `uv` for environments, dependencies,
+  locking, and command execution.
+- A `.ndef` file contains exactly one module and must start with a module declaration.
+- A module may contain `node`, `choice`, and `enum` declarations in source order.
+- Node fields and choice alternatives reference types by name. Enums introduce values by
+  name. This distinction prevents enum values from being mistaken for type references.
+- Built-in types and their C++ spellings live in separate `.map` files.
+- Parsing currently validates syntax only. Duplicate declarations, unresolved references,
+  naming rules for generated C++, mapping conflicts, and recursive type constraints remain
+  future semantic-validation decisions.
+- The C++ representation of choices and field ownership/reference semantics are not yet
+  specified. No backend generation is part of the current milestone.
 
 ## Version control
 
@@ -32,4 +117,3 @@ The repository is initialized locally. To create the first commit:
 git add .
 git commit -m "Initial project scaffold"
 ```
-
