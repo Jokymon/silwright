@@ -24,6 +24,13 @@ htmlcov/
 .DS_Store
 Thumbs.db
 
+# Vim temporary and local state files
+*.sw?
+*~
+*.un~
+Session.vim
+Sessionx.vim
+.netrwhist
+
 # Generated C++ output
 generated/
-
