@@ -1,0 +1,42 @@
+[project]
+name = "struct-gen"
+version = "0.1.0"
+description = "Generate C++ code from declarative node descriptions."
+readme = "README.md"
+requires-python = ">=3.14"
+license = "MIT"
+authors = [
+    { name = "struct-gen contributors" },
+]
+dependencies = []
+
+[project.scripts]
+struct-gen = "struct_gen.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.9.0,<0.10.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "mypy>=1.19.0",
+    "pytest>=9.0.0",
+    "ruff>=0.14.0",
+]
+
+[tool.pytest.ini_options]
+addopts = "-ra"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.mypy]
+python_version = "3.14"
+strict = true
+packages = ["struct_gen"]
+
