@@ -37,8 +37,9 @@ uv run struct-gen examples/simple_lang.ndef
 ```
 
 The command automatically loads the required `builtin.map` from the same directory, then
-writes `simple_lang.hpp` and `simple_lang.cpp` beside `simple_lang.ndef`. Existing output
-files with those names are replaced. Syntax errors include their source location.
+writes `simple_lang.hpp`, `simple_lang.cpp`, `simple_lang_dump.hpp`, `simple_lang_dump.ipp`, and
+`simple_lang_dump.cpp` beside `simple_lang.ndef`. Existing output files with those names are
+replaced. Syntax errors include their source location.
 
 Library users can call `struct_gen.parse_definition_file(path)` for the same combined lookup
 behavior. `struct_gen.parse_definitions(text)` and `struct_gen.parse_type_mappings(text)` are
@@ -141,6 +142,14 @@ This section is maintained as requirements are discovered or changed during deve
 - Generated headers currently include `<memory>`, `<string>`, `<variant>`, and `<vector>`. A
   future mapping format may need to carry required include information for arbitrary mapped
   C++ types.
+- Dump support is generated separately as `_dump.hpp`, `_dump.ipp`, and `_dump.cpp`. The IPP
+  contains template implementations and is included at the end of the dump header.
+- Generated `dump` overloads emit YAML-like objects with four-space nesting, an artificial
+  `_type` field, `.ndef` field names, lists for repeated fields, and `null` for null pointers.
+  Strings are quoted and escaped, and enums use their original `.ndef` entry names.
+- Scalar values pass through an inline generic `dump_value` customization point. Its default
+  uses `operator<<`; context-sensitive custom types can provide a more-specific overload in
+  the value type's namespace so it is found through argument-dependent lookup.
 
 ## Version control
 
