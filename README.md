@@ -108,6 +108,14 @@ Each mapping has a struct-gen type on the left and its C++ type spelling on the 
 definition such as `simple_lang.ndef`, the parser always looks for `builtin.map` in the same
 directory. See `examples/simple_lang.ndef` and `examples/builtin.map` for complete examples.
 
+## End-to-end C++ example
+
+`examples/simple_lang_main.cpp` constructs a function definition containing several expression
+nodes and writes its YAML-like dump to `std::cout`. `examples/CMakeLists.txt` defines the
+`simple_lang_example` C++20 executable from the sample and generated translation units. The
+example files are currently provided as a proof of concept; automated C++ compilation is not
+yet part of the project checks.
+
 ## Requirements and decisions
 
 This section is maintained as requirements are discovered or changed during development.
