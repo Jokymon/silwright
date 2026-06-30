@@ -13,6 +13,10 @@ struct bool_literal;
 struct string_literal;
 struct if_expression;
 struct unary_expression;
+struct function_parameter;
+struct function_signature;
+struct function_head;
+struct function_definition;
 
 using expr = std::variant<number, char_literal, bool_literal, string_literal, if_expression, unary_expression>;
 
@@ -39,6 +43,21 @@ struct if_expression {
 struct unary_expression {
     std::unique_ptr<expr> expr;
     type_id assigned_type;
+};
+struct function_parameter {
+    std::string name;
+};
+struct function_signature {
+    std::vector<function_parameter> parameters;
+    type_id function_type;
+};
+struct function_head {
+    std::string name;
+    function_signature signature;
+};
+struct function_definition {
+    std::unique_ptr<function_head> function_head;
+    std::vector<std::unique_ptr<expr>> code;
 };
 
 }  // namespace lir

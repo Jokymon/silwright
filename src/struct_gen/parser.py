@@ -34,7 +34,8 @@ _NDEF_GRAMMAR = r"""
     _NL: /\r?\n/
     %import common.WS_INLINE
     %ignore WS_INLINE
-    %ignore /#[^\r\n]*/
+    %ignore /(?m:^[ \t]*\/\/[^\r\n]*(?:\r?\n|$))/
+    %ignore /\/\/[^\r\n]*/
 """
 
 _MAP_GRAMMAR = r"""

@@ -91,9 +91,10 @@ end
 - `enum` declares a set of new enumerator names rather than references to node types.
 - `end` closes every `node`, `choice`, and `enum` declaration.
 - Names currently use ASCII letters, digits, and underscores and cannot start with a digit.
-- `#` starts a line comment. Blank lines are accepted around declarations; blank or
-  comment-only lines inside declaration bodies are not currently supported. Horizontal
-  spacing is insignificant.
+- `//` starts a comment that continues to the end of the line. Comments may occupy a complete
+  line or follow regular definition code. Multiline comments are not supported. Blank lines
+  are accepted around declarations; blank lines inside declaration bodies are not currently
+  supported. Horizontal spacing is insignificant.
 
 Built-in field types are mapped separately in a `.map` file:
 
@@ -113,6 +114,8 @@ This section is maintained as requirements are discovered or changed during deve
 - The project requires Python 3.14 or newer and uses `uv` for environments, dependencies,
   locking, and command execution.
 - A `.ndef` file contains exactly one module and must start with a module declaration.
+- `.ndef` comments start with `//` and continue through the end of the current line; there is
+  no multiline comment syntax.
 - A module may contain `node`, `choice`, and `enum` declarations in source order.
 - Node fields and choice alternatives reference types by name. Enums introduce values by
   name. This distinction prevents enum values from being mistaken for type references.

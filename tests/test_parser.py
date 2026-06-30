@@ -123,14 +123,29 @@ def test_value_remains_valid_as_a_field_name() -> None:
 
 def test_comments_and_blank_lines_between_declarations_are_ignored() -> None:
     source = """\
-# Module comment
-module example
+// Module comment
+module example // trailing module comment
 
 node Empty
 end
 """
 
     assert parse_definitions(source) == Module("example", (Node("Empty"),))
+
+
+def test_comments_are_allowed_on_any_definition_line() -> None:
+    source = """\
+module example
+node Number // declaration comment
+    // Comment-only lines inside a definition are ignored.
+    value: number // field comment
+    // Another comment before the terminator.
+end // terminator comment
+"""
+
+    assert parse_definitions(source) == Module(
+        "example", (Node("Number", (Field("value", "number"),)),)
+    )
 
 
 def test_module_declaration_is_required() -> None:

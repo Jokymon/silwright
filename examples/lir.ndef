@@ -38,3 +38,24 @@ choice Expr
     | IfExpression
     | UnaryExpression
 end
+
+node FunctionParameter
+    name: identifier
+end
+
+node FunctionSignature
+    parameters: *value FunctionParameter
+    function_type: type
+end
+
+node FunctionHead
+    name: identifier
+    signature: value FunctionSignature
+end
+
+node FunctionDefinition
+    function_head: FunctionHead
+    code: *Expr
+    // TODO: add 'scope' member
+end
+
