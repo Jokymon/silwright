@@ -158,10 +158,10 @@ def test_unclosed_definition_is_rejected() -> None:
         parse_definitions("module example\nnode Variable\n    name: identifier\n")
 
 
-def test_parse_definition_file_loads_sibling_builtin_map(tmp_path) -> None:
+def test_parse_definition_file_loads_sibling_cpp_backend_map(tmp_path) -> None:
     definition_path = tmp_path / "example.ndef"
     definition_path.write_text("module example\nnode Value\n    value: number\nend\n")
-    (tmp_path / "builtin.map").write_text("number: long\n")
+    (tmp_path / "backend_cpp.map").write_text("number: long\n")
 
     assert parse_definition_file(definition_path) == ParsedDefinitionFile(
         module=Module("example", (Node("Value", (Field("value", "number"),)),)),
@@ -169,9 +169,9 @@ def test_parse_definition_file_loads_sibling_builtin_map(tmp_path) -> None:
     )
 
 
-def test_parse_definition_file_requires_sibling_builtin_map(tmp_path) -> None:
+def test_parse_definition_file_requires_sibling_cpp_backend_map(tmp_path) -> None:
     definition_path = tmp_path / "example.ndef"
     definition_path.write_text("module example\n")
 
-    with pytest.raises(FileNotFoundError, match=r"builtin\.map"):
+    with pytest.raises(FileNotFoundError, match=r"backend_cpp\.map"):
         parse_definition_file(definition_path)

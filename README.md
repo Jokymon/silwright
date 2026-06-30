@@ -36,7 +36,7 @@ Generate C++ from the example node definition:
 uv run struct-gen examples/simple_lang.ndef
 ```
 
-The command automatically loads the required `builtin.map` from the same directory, then
+The command automatically loads the required `backend_cpp.map` from the same directory, then
 writes `simple_lang.hpp`, `simple_lang.cpp`, `simple_lang_dump.hpp`, `simple_lang_dump.ipp`, and
 `simple_lang_dump.cpp` beside `simple_lang.ndef`. Existing output files with those names are
 replaced. Syntax errors include their source location.
@@ -97,7 +97,7 @@ end
   are accepted around declarations; blank lines inside declaration bodies are not currently
   supported. Horizontal spacing is insignificant.
 
-Built-in field types are mapped separately in a `.map` file:
+C++ backend types are mapped separately in `backend_cpp.map`:
 
 ```text
 identifier: std::string
@@ -105,8 +105,9 @@ number: long
 ```
 
 Each mapping has a struct-gen type on the left and its C++ type spelling on the right. For a
-definition such as `simple_lang.ndef`, the parser always looks for `builtin.map` in the same
-directory. See `examples/simple_lang.ndef` and `examples/builtin.map` for complete examples.
+definition such as `simple_lang.ndef`, the parser always looks for `backend_cpp.map` in the
+same directory. See `examples/simple_lang.ndef` and `examples/backend_cpp.map` for complete
+examples.
 
 ## End-to-end C++ example
 
@@ -128,8 +129,9 @@ This section is maintained as requirements are discovered or changed during deve
 - A module may contain `node`, `choice`, and `enum` declarations in source order.
 - Node fields and choice alternatives reference types by name. Enums introduce values by
   name. This distinction prevents enum values from being mistaken for type references.
-- Built-in types and their C++ spellings live in the required `builtin.map` file beside each
-  parsed `.ndef` file.
+- Backend types and their C++ spellings live in the required `backend_cpp.map` file beside
+  each parsed `.ndef` file. C++ is currently selected statically; no dynamic backend selection
+  is supported yet.
 - Generated `.hpp` and `.cpp` files use the `.ndef` basename and are written beside it. The
   module name is used directly as the C++ namespace.
 - Definition names are converted from CamelCase to snake_case. Enum names additionally use

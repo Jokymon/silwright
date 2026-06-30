@@ -1,4 +1,4 @@
-"""Parsers for node definition and built-in type mapping files."""
+"""Parsers for node definitions and C++ backend mappings."""
 
 from pathlib import Path
 
@@ -117,11 +117,11 @@ def parse_type_mappings(source: str) -> tuple[TypeMapping, ...]:
 
 
 def parse_definition_file(path: Path) -> ParsedDefinitionFile:
-    """Parse a .ndef file and the sibling builtin.map file."""
+    """Parse a .ndef file and the sibling backend_cpp.map file."""
     if path.suffix != ".ndef":
         raise ValueError(f"definition file must use the .ndef suffix: {path}")
 
-    mapping_path = path.parent / "builtin.map"
+    mapping_path = path.parent / "backend_cpp.map"
     module = parse_definitions(path.read_text(encoding="utf-8"))
     mappings = parse_type_mappings(mapping_path.read_text(encoding="utf-8"))
     return ParsedDefinitionFile(module=module, type_mappings=mappings)

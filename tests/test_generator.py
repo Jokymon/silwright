@@ -73,7 +73,7 @@ def test_generate_cpp() -> None:
 def test_generate_cpp_files_uses_definition_basename(tmp_path: Path) -> None:
     definition = tmp_path / "syntax.ndef"
     definition.write_text("module syntax\nnode Value\n    value: number\nend\n")
-    (tmp_path / "builtin.map").write_text("number: long\n")
+    (tmp_path / "backend_cpp.map").write_text("number: long\n")
 
     header, source = generate_cpp_files(definition)
 

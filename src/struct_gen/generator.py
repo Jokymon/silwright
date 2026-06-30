@@ -87,7 +87,7 @@ def _mappings_by_name(parsed: ParsedDefinitionFile) -> dict[str, str]:
     result: dict[str, str] = {}
     for mapping in parsed.type_mappings:
         if mapping.source_type in result:
-            raise GenerationError(f"duplicate built-in mapping: {mapping.source_type}")
+            raise GenerationError(f"duplicate C++ backend mapping: {mapping.source_type}")
         result[mapping.source_type] = mapping.cpp_type
     return result
 
