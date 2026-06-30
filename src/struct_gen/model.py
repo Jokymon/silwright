@@ -62,3 +62,12 @@ class ParsedDefinitionFile:
 
     module: Module
     type_mappings: tuple[TypeMapping, ...]
+    backend_includes: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class CppBackendConfig:
+    """Parsed contents of a backend_cpp.map file."""
+
+    type_mappings: tuple[TypeMapping, ...]
+    includes: tuple[str, ...]

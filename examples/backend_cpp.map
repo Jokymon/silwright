@@ -1,6 +1,10 @@
+@include <cstddef>
+@include <cstdint>
+@include "type_id.hpp"
+
 identifier: std::string
 number: long long
 boolean: bool
 type: type_id
-character: uint32_t
-index: size_t
+character: std::uint32_t
+index: std::size_t

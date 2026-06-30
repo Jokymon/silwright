@@ -6,6 +6,7 @@ from lark import Lark, Token, Transformer, v_args
 
 from struct_gen.model import (
     Choice,
+    CppBackendConfig,
     Definition,
     Enum,
     Field,
@@ -39,10 +40,13 @@ _NDEF_GRAMMAR = r"""
 """
 
 _MAP_GRAMMAR = r"""
-    start: _NL* mapping*
+    start: _NL* entry*
+    ?entry: include | mapping
+    include: "@include" INCLUDE _NL+
     mapping: NAME ":" CPP_TYPE _NL+
 
     NAME: /[A-Za-z_][A-Za-z0-9_]*/
+    INCLUDE: /<[^>\r\n]+>|"[^"\r\n]+"/
     CPP_TYPE: /[^\r\n#]+/
     _NL: /\r?\n/
     %import common.WS_INLINE
@@ -94,11 +98,17 @@ class _NodeTransformer(Transformer[Token, object]):
 
 @v_args(inline=True)
 class _MappingTransformer(Transformer[Token, object]):
+    def include(self, spelling: Token) -> str:
+        return _text(spelling)
+
     def mapping(self, source_type: Token, cpp_type: Token) -> TypeMapping:
         return TypeMapping(source_type=_text(source_type), cpp_type=_text(cpp_type).strip())
 
-    def start(self, *mappings: TypeMapping) -> tuple[TypeMapping, ...]:
-        return tuple(mappings)
+    def start(self, *entries: TypeMapping | str) -> CppBackendConfig:
+        return CppBackendConfig(
+            type_mappings=tuple(entry for entry in entries if isinstance(entry, TypeMapping)),
+            includes=tuple(entry for entry in entries if isinstance(entry, str)),
+        )
 
 
 def parse_definitions(source: str) -> Module:
@@ -110,9 +120,13 @@ def parse_definitions(source: str) -> Module:
 
 def parse_type_mappings(source: str) -> tuple[TypeMapping, ...]:
     """Parse the contents of one .map file."""
+    return parse_cpp_backend_config(source).type_mappings
+
+
+def parse_cpp_backend_config(source: str) -> CppBackendConfig:
+    """Parse mappings and include directives from backend_cpp.map content."""
     result = _MappingTransformer().transform(_MAP_PARSER.parse(_terminated(source)))
-    assert isinstance(result, tuple)
-    assert all(isinstance(mapping, TypeMapping) for mapping in result)
+    assert isinstance(result, CppBackendConfig)
     return result
 
 
@@ -123,8 +137,12 @@ def parse_definition_file(path: Path) -> ParsedDefinitionFile:
 
     mapping_path = path.parent / "backend_cpp.map"
     module = parse_definitions(path.read_text(encoding="utf-8"))
-    mappings = parse_type_mappings(mapping_path.read_text(encoding="utf-8"))
-    return ParsedDefinitionFile(module=module, type_mappings=mappings)
+    backend = parse_cpp_backend_config(mapping_path.read_text(encoding="utf-8"))
+    return ParsedDefinitionFile(
+        module=module,
+        type_mappings=backend.type_mappings,
+        backend_includes=backend.includes,
+    )
 
 
 def _terminated(source: str) -> str:

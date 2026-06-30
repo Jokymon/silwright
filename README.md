@@ -100,14 +100,20 @@ end
 C++ backend types are mapped separately in `backend_cpp.map`:
 
 ```text
+@include <cstddef>
+@include "project/type_id.hpp"
+
 identifier: std::string
 number: long
+index: std::size_t
+type: project::type_id
 ```
 
-Each mapping has a struct-gen type on the left and its C++ type spelling on the right. For a
-definition such as `simple_lang.ndef`, the parser always looks for `backend_cpp.map` in the
-same directory. See `examples/simple_lang.ndef` and `examples/backend_cpp.map` for complete
-examples.
+Each mapping has a struct-gen type on the left and its C++ type spelling on the right.
+`@include` accepts either a system header in `<...>` or a project header in `"..."`; these
+headers are deduplicated and emitted into the generated model header. For a definition such
+as `simple_lang.ndef`, the parser always looks for `backend_cpp.map` in the same directory.
+See `examples/simple_lang.ndef` and `examples/backend_cpp.map` for complete examples.
 
 ## End-to-end C++ example
 
@@ -132,6 +138,8 @@ This section is maintained as requirements are discovered or changed during deve
 - Backend types and their C++ spellings live in the required `backend_cpp.map` file beside
   each parsed `.ndef` file. C++ is currently selected statically; no dynamic backend selection
   is supported yet.
+- `backend_cpp.map` may declare generated model-header dependencies with `@include <header>`
+  and `@include "header"`. Includes preserve declaration order and duplicates are removed.
 - Generated `.hpp` and `.cpp` files use the `.ndef` basename and are written beside it. The
   module name is used directly as the C++ namespace.
 - Definition names are converted from CamelCase to snake_case. Enum names additionally use

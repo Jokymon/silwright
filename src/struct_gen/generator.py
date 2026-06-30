@@ -49,12 +49,13 @@ def generate_cpp(parsed: ParsedDefinitionFile, header_name: str) -> GeneratedCpp
     body.extend(_render_node(item, declarations, mappings) for item in ordered_nodes)
 
     rendered_body = "\n".join(body).rstrip()
+    include_spellings = dict.fromkeys(
+        ("<memory>", "<string>", "<variant>", "<vector>", *parsed.backend_includes)
+    )
+    includes = "\n".join(f"#include {spelling}" for spelling in include_spellings)
     header = (
         "#pragma once\n\n"
-        "#include <memory>\n"
-        "#include <string>\n"
-        "#include <variant>\n"
-        "#include <vector>\n\n"
+        f"{includes}\n\n"
         f"namespace {module.name} {{\n\n"
         f"{rendered_body}\n\n"
         f"}}  // namespace {module.name}\n"

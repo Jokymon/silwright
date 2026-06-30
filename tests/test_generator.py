@@ -70,6 +70,20 @@ def test_generate_cpp() -> None:
     assert generated.source == '#include "expressions.hpp"\n'
 
 
+def test_generate_cpp_emits_deduplicated_backend_includes() -> None:
+    parsed = ParsedDefinitionFile(
+        Module("example", (Node("Value", (Field("value", "index"),)),)),
+        (TypeMapping("index", "std::size_t"),),
+        backend_includes=("<cstddef>", '"project/types.hpp"', "<cstddef>", "<vector>"),
+    )
+
+    header = generate_cpp(parsed, "example.hpp").header
+
+    assert header.count("#include <cstddef>") == 1
+    assert header.count("#include <vector>") == 1
+    assert '#include "project/types.hpp"' in header
+
+
 def test_generate_cpp_files_uses_definition_basename(tmp_path: Path) -> None:
     definition = tmp_path / "syntax.ndef"
     definition.write_text("module syntax\nnode Value\n    value: number\nend\n")

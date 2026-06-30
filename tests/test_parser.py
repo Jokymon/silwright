@@ -3,12 +3,14 @@ from lark.exceptions import UnexpectedInput
 
 from struct_gen import (
     Choice,
+    CppBackendConfig,
     Enum,
     Field,
     Module,
     Node,
     ParsedDefinitionFile,
     TypeMapping,
+    parse_cpp_backend_config,
     parse_definition_file,
     parse_definitions,
     parse_type_mappings,
@@ -66,6 +68,23 @@ def test_parse_type_mappings() -> None:
     assert parse_type_mappings("identifier : std::string\nnumber: long\n") == (
         TypeMapping("identifier", "std::string"),
         TypeMapping("number", "long"),
+    )
+
+
+def test_parse_cpp_backend_includes_and_mappings() -> None:
+    source = """\
+@include <cstddef>
+@include "project/type_id.hpp"
+index: std::size_t
+type: project::type_id
+"""
+
+    assert parse_cpp_backend_config(source) == CppBackendConfig(
+        type_mappings=(
+            TypeMapping("index", "std::size_t"),
+            TypeMapping("type", "project::type_id"),
+        ),
+        includes=("<cstddef>", '"project/type_id.hpp"'),
     )
 
 
@@ -161,11 +180,14 @@ def test_unclosed_definition_is_rejected() -> None:
 def test_parse_definition_file_loads_sibling_cpp_backend_map(tmp_path) -> None:
     definition_path = tmp_path / "example.ndef"
     definition_path.write_text("module example\nnode Value\n    value: number\nend\n")
-    (tmp_path / "backend_cpp.map").write_text("number: long\n")
+    (tmp_path / "backend_cpp.map").write_text(
+        '@include <cstdint>\n@include "types.hpp"\nnumber: long\n'
+    )
 
     assert parse_definition_file(definition_path) == ParsedDefinitionFile(
         module=Module("example", (Node("Value", (Field("value", "number"),)),)),
         type_mappings=(TypeMapping("number", "long"),),
+        backend_includes=("<cstdint>", '"types.hpp"'),
     )
 
 

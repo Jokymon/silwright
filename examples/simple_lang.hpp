@@ -4,6 +4,9 @@
 #include <string>
 #include <variant>
 #include <vector>
+#include <cstddef>
+#include <cstdint>
+#include "type_id.hpp"
 
 namespace expressions {
 
