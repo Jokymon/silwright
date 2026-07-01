@@ -94,6 +94,8 @@ type: project::type_id
         "Variable | Number | BinaryExpression",
         "Variable\n    | Number\n    | BinaryExpression",
         "Variable |\n    Number |\n    BinaryExpression",
+        "Variable | Number |\n    BinaryExpression",
+        "Variable | Number\n    | BinaryExpression",
     ),
 )
 def test_choice_options_allow_flexible_line_breaks(options: str) -> None:
