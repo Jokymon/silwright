@@ -35,11 +35,20 @@ inline void write_quoted(std::ostream& out, std::string_view value) {
     out.put('"');
 }
 
+template <class>
+inline constexpr bool has_no_dump_value = false;
+
 }  // namespace dump_detail
 
 template <class Context, class Value>
 inline void dump_value(std::ostream& out, Context&, const Value& value) {
-    out << value;
+    if constexpr (requires { out << value; }) {
+        out << value;
+    } else {
+        static_assert(
+            dump_detail::has_no_dump_value<Value>,
+            "value is not streamable; provide a dump_value overload in its namespace");
+    }
 }
 
 template <class Context>
@@ -48,28 +57,46 @@ inline void dump_value(std::ostream& out, Context&, const std::string& value) {
 }
 
 template <class Context>
-inline void dump_value(std::ostream& out, Context&, bool value) {
+inline void dump_value(std::ostream& out, Context&, const bool& value) {
     out << (value ? "true" : "false");
 }
 
 template <class Context>
-inline void dump_value(std::ostream& out, Context&, op_t value) {
+inline void dump_value(std::ostream& out, Context&, const binary_op_t& value) {
     switch (value) {
-    case op_t::Add: out << "Add"; return;
-    case op_t::Subtract: out << "Subtract"; return;
-    case op_t::Multiply: out << "Multiply"; return;
-    case op_t::Divide: out << "Divide"; return;
-    case op_t::Modulus: out << "Modulus"; return;
+    case binary_op_t::Multiply: out << "Multiply"; return;
+    case binary_op_t::Division: out << "Division"; return;
+    case binary_op_t::Modulus: out << "Modulus"; return;
+    case binary_op_t::Plus: out << "Plus"; return;
+    case binary_op_t::Minus: out << "Minus"; return;
+    case binary_op_t::Equals: out << "Equals"; return;
+    case binary_op_t::NotEquals: out << "NotEquals"; return;
+    case binary_op_t::LessThan: out << "LessThan"; return;
+    case binary_op_t::LessThanEqual: out << "LessThanEqual"; return;
+    case binary_op_t::GreaterThan: out << "GreaterThan"; return;
+    case binary_op_t::GreaterThanEqual: out << "GreaterThanEqual"; return;
+    case binary_op_t::AndOp: out << "AndOp"; return;
+    case binary_op_t::OrOp: out << "OrOp"; return;
+    case binary_op_t::Shl: out << "Shl"; return;
+    case binary_op_t::Shr: out << "Shr"; return;
     }
-    out << "<unknown Op>";
+    out << "<unknown BinaryOp>";
 }
 
 template <class Context>
 inline void dump(
-    std::ostream& out, Context& ctx, const op_t& value, int indent) {
+    std::ostream& out, Context& ctx, const binary_op_t& value, int indent) {
     dump_detail::write_indent(out, indent);
     dump_value(out, ctx, value);
     out.put('\n');
+}
+
+template <class Context>
+inline void dump(
+    std::ostream& out, Context& ctx, const place_elem& value, int indent) {
+    std::visit(
+        [&](const auto& alternative) { dump(out, ctx, alternative, indent); },
+        value);
 }
 
 template <class Context>
@@ -82,14 +109,62 @@ inline void dump(
 
 template <class Context>
 inline void dump(
-    std::ostream& out, Context& ctx, const variable& value, int indent) {
+    std::ostream& out, Context& ctx, const base_var& value, int indent) {
     dump_detail::write_indent(out, indent);
-    out << "_type: Variable\n";
+    out << "_type: BaseVar\n";
     dump_detail::write_indent(out, indent);
     out << "name:";
     out.put(' ');
     dump_value(out, ctx, value.name);
     out.put('\n');
+    dump_detail::write_indent(out, indent);
+    out << "symbol_ref:";
+    out.put(' ');
+    dump_value(out, ctx, value.symbol_ref);
+    out.put('\n');
+}
+
+template <class Context>
+inline void dump(
+    std::ostream& out, Context& ctx, const deref& value, int indent) {
+    dump_detail::write_indent(out, indent);
+    out << "_type: Deref\n";
+}
+
+template <class Context>
+inline void dump(
+    std::ostream& out, Context& ctx, const field& value, int indent) {
+    dump_detail::write_indent(out, indent);
+    out << "_type: Field\n";
+    dump_detail::write_indent(out, indent);
+    out << "index:";
+    out.put(' ');
+    dump_value(out, ctx, value.index);
+    out.put('\n');
+}
+
+template <class Context>
+inline void dump(
+    std::ostream& out, Context& ctx, const place& value, int indent) {
+    dump_detail::write_indent(out, indent);
+    out << "_type: Place\n";
+    dump_detail::write_indent(out, indent);
+    out << "base:";
+    out.put('\n');
+    dump(out, ctx, value.base, indent + 4);
+    dump_detail::write_indent(out, indent);
+    out << "projection:";
+    if (value.projection.empty()) {
+        out << " []\n";
+    } else {
+        out.put('\n');
+        for (const auto& item : value.projection) {
+            dump_detail::write_indent(out, indent + 4);
+            out.put('-');
+            out.put('\n');
+            dump(out, ctx, item, indent + 8);
+        }
+    }
 }
 
 template <class Context>
@@ -101,6 +176,338 @@ inline void dump(
     out << "value:";
     out.put(' ');
     dump_value(out, ctx, value.value);
+    out.put('\n');
+}
+
+template <class Context>
+inline void dump(
+    std::ostream& out, Context& ctx, const char_literal& value, int indent) {
+    dump_detail::write_indent(out, indent);
+    out << "_type: CharLiteral\n";
+    dump_detail::write_indent(out, indent);
+    out << "ch:";
+    out.put(' ');
+    dump_value(out, ctx, value.ch);
+    out.put('\n');
+}
+
+template <class Context>
+inline void dump(
+    std::ostream& out, Context& ctx, const bool_literal& value, int indent) {
+    dump_detail::write_indent(out, indent);
+    out << "_type: BoolLiteral\n";
+    dump_detail::write_indent(out, indent);
+    out << "value:";
+    out.put(' ');
+    dump_value(out, ctx, value.value);
+    out.put('\n');
+}
+
+template <class Context>
+inline void dump(
+    std::ostream& out, Context& ctx, const string_literal& value, int indent) {
+    dump_detail::write_indent(out, indent);
+    out << "_type: StringLiteral\n";
+    dump_detail::write_indent(out, indent);
+    out << "table_index:";
+    out.put(' ');
+    dump_value(out, ctx, value.table_index);
+    out.put('\n');
+    dump_detail::write_indent(out, indent);
+    out << "size:";
+    out.put(' ');
+    dump_value(out, ctx, value.size);
+    out.put('\n');
+}
+
+template <class Context>
+inline void dump(
+    std::ostream& out, Context& ctx, const allocate_record_expression& value, int indent) {
+    dump_detail::write_indent(out, indent);
+    out << "_type: AllocateRecordExpression\n";
+    dump_detail::write_indent(out, indent);
+    out << "type:";
+    out.put(' ');
+    dump_value(out, ctx, value.type);
+    out.put('\n');
+}
+
+template <class Context>
+inline void dump(
+    std::ostream& out, Context& ctx, const field_initialisation& value, int indent) {
+    dump_detail::write_indent(out, indent);
+    out << "_type: FieldInitialisation\n";
+    dump_detail::write_indent(out, indent);
+    out << "field_index:";
+    out.put(' ');
+    dump_value(out, ctx, value.field_index);
+    out.put('\n');
+    dump_detail::write_indent(out, indent);
+    out << "value:";
+    if (!value.value) {
+        out << " null\n";
+    } else {
+        out.put('\n');
+        dump(out, ctx, *value.value, indent + 4);
+    }
+}
+
+template <class Context>
+inline void dump(
+    std::ostream& out, Context& ctx, const store_record_expression& value, int indent) {
+    dump_detail::write_indent(out, indent);
+    out << "_type: StoreRecordExpression\n";
+    dump_detail::write_indent(out, indent);
+    out << "initialisations:";
+    if (value.initialisations.empty()) {
+        out << " []\n";
+    } else {
+        out.put('\n');
+        for (const auto& item : value.initialisations) {
+            dump_detail::write_indent(out, indent + 4);
+            out.put('-');
+            out.put('\n');
+            dump(out, ctx, item, indent + 8);
+        }
+    }
+    dump_detail::write_indent(out, indent);
+    out << "stored_type:";
+    out.put(' ');
+    dump_value(out, ctx, value.stored_type);
+    out.put('\n');
+}
+
+template <class Context>
+inline void dump(
+    std::ostream& out, Context& ctx, const load_expression& value, int indent) {
+    dump_detail::write_indent(out, indent);
+    out << "_type: LoadExpression\n";
+    dump_detail::write_indent(out, indent);
+    out << "assigned_type:";
+    out.put(' ');
+    dump_value(out, ctx, value.assigned_type);
+    out.put('\n');
+}
+
+template <class Context>
+inline void dump(
+    std::ostream& out, Context& ctx, const store_expression& value, int indent) {
+    dump_detail::write_indent(out, indent);
+    out << "_type: StoreExpression\n";
+    dump_detail::write_indent(out, indent);
+    out << "value:";
+    if (!value.value) {
+        out << " null\n";
+    } else {
+        out.put('\n');
+        dump(out, ctx, *value.value, indent + 4);
+    }
+    dump_detail::write_indent(out, indent);
+    out << "stored_type:";
+    out.put(' ');
+    dump_value(out, ctx, value.stored_type);
+    out.put('\n');
+}
+
+template <class Context>
+inline void dump(
+    std::ostream& out, Context& ctx, const if_expression& value, int indent) {
+    dump_detail::write_indent(out, indent);
+    out << "_type: IfExpression\n";
+    dump_detail::write_indent(out, indent);
+    out << "condition:";
+    if (!value.condition) {
+        out << " null\n";
+    } else {
+        out.put('\n');
+        dump(out, ctx, *value.condition, indent + 4);
+    }
+    dump_detail::write_indent(out, indent);
+    out << "then_code:";
+    if (value.then_code.empty()) {
+        out << " []\n";
+    } else {
+        out.put('\n');
+        for (const auto& item : value.then_code) {
+            dump_detail::write_indent(out, indent + 4);
+            out.put('-');
+            if (!item) {
+                out << " null\n";
+            } else {
+                out.put('\n');
+                dump(out, ctx, *item, indent + 8);
+            }
+        }
+    }
+    dump_detail::write_indent(out, indent);
+    out << "else_code:";
+    if (value.else_code.empty()) {
+        out << " []\n";
+    } else {
+        out.put('\n');
+        for (const auto& item : value.else_code) {
+            dump_detail::write_indent(out, indent + 4);
+            out.put('-');
+            if (!item) {
+                out << " null\n";
+            } else {
+                out.put('\n');
+                dump(out, ctx, *item, indent + 8);
+            }
+        }
+    }
+    dump_detail::write_indent(out, indent);
+    out << "assigned_type:";
+    out.put(' ');
+    dump_value(out, ctx, value.assigned_type);
+    out.put('\n');
+}
+
+template <class Context>
+inline void dump(
+    std::ostream& out, Context& ctx, const while_expression& value, int indent) {
+    dump_detail::write_indent(out, indent);
+    out << "_type: WhileExpression\n";
+    dump_detail::write_indent(out, indent);
+    out << "condition:";
+    if (!value.condition) {
+        out << " null\n";
+    } else {
+        out.put('\n');
+        dump(out, ctx, *value.condition, indent + 4);
+    }
+    dump_detail::write_indent(out, indent);
+    out << "while_code:";
+    if (value.while_code.empty()) {
+        out << " []\n";
+    } else {
+        out.put('\n');
+        for (const auto& item : value.while_code) {
+            dump_detail::write_indent(out, indent + 4);
+            out.put('-');
+            if (!item) {
+                out << " null\n";
+            } else {
+                out.put('\n');
+                dump(out, ctx, *item, indent + 8);
+            }
+        }
+    }
+}
+
+template <class Context>
+inline void dump(
+    std::ostream& out, Context& ctx, const function_call& value, int indent) {
+    dump_detail::write_indent(out, indent);
+    out << "_type: FunctionCall\n";
+    dump_detail::write_indent(out, indent);
+    out << "function_name:";
+    out.put(' ');
+    dump_value(out, ctx, value.function_name);
+    out.put('\n');
+    dump_detail::write_indent(out, indent);
+    out << "symbol_ref:";
+    out.put(' ');
+    dump_value(out, ctx, value.symbol_ref);
+    out.put('\n');
+    dump_detail::write_indent(out, indent);
+    out << "arguments:";
+    if (value.arguments.empty()) {
+        out << " []\n";
+    } else {
+        out.put('\n');
+        for (const auto& item : value.arguments) {
+            dump_detail::write_indent(out, indent + 4);
+            out.put('-');
+            if (!item) {
+                out << " null\n";
+            } else {
+                out.put('\n');
+                dump(out, ctx, *item, indent + 8);
+            }
+        }
+    }
+}
+
+template <class Context>
+inline void dump(
+    std::ostream& out, Context& ctx, const cast_expression& value, int indent) {
+    dump_detail::write_indent(out, indent);
+    out << "_type: CastExpression\n";
+    dump_detail::write_indent(out, indent);
+    out << "expression:";
+    if (!value.expression) {
+        out << " null\n";
+    } else {
+        out.put('\n');
+        dump(out, ctx, *value.expression, indent + 4);
+    }
+    dump_detail::write_indent(out, indent);
+    out << "cast_type:";
+    out.put(' ');
+    dump_value(out, ctx, value.cast_type);
+    out.put('\n');
+}
+
+template <class Context>
+inline void dump(
+    std::ostream& out, Context& ctx, const discard_expression& value, int indent) {
+    dump_detail::write_indent(out, indent);
+    out << "_type: DiscardExpression\n";
+    dump_detail::write_indent(out, indent);
+    out << "expression:";
+    if (!value.expression) {
+        out << " null\n";
+    } else {
+        out.put('\n');
+        dump(out, ctx, *value.expression, indent + 4);
+    }
+}
+
+template <class Context>
+inline void dump(
+    std::ostream& out, Context& ctx, const return_expression& value, int indent) {
+    dump_detail::write_indent(out, indent);
+    out << "_type: ReturnExpression\n";
+    dump_detail::write_indent(out, indent);
+    out << "expression:";
+    if (!value.expression) {
+        out << " null\n";
+    } else {
+        out.put('\n');
+        dump(out, ctx, *value.expression, indent + 4);
+    }
+    dump_detail::write_indent(out, indent);
+    out << "is_explicit:";
+    out.put(' ');
+    dump_value(out, ctx, value.is_explicit);
+    out.put('\n');
+}
+
+template <class Context>
+inline void dump(
+    std::ostream& out, Context& ctx, const break_statement& value, int indent) {
+    dump_detail::write_indent(out, indent);
+    out << "_type: BreakStatement\n";
+}
+
+template <class Context>
+inline void dump(
+    std::ostream& out, Context& ctx, const unary_expression& value, int indent) {
+    dump_detail::write_indent(out, indent);
+    out << "_type: UnaryExpression\n";
+    dump_detail::write_indent(out, indent);
+    out << "expr:";
+    if (!value.expr) {
+        out << " null\n";
+    } else {
+        out.put('\n');
+        dump(out, ctx, *value.expr, indent + 4);
+    }
+    dump_detail::write_indent(out, indent);
+    out << "assigned_type:";
+    out.put(' ');
+    dump_value(out, ctx, value.assigned_type);
     out.put('\n');
 }
 
@@ -130,6 +537,11 @@ inline void dump(
         out.put('\n');
         dump(out, ctx, *value.right, indent + 4);
     }
+    dump_detail::write_indent(out, indent);
+    out << "assigned_type:";
+    out.put(' ');
+    dump_value(out, ctx, value.assigned_type);
+    out.put('\n');
 }
 
 template <class Context>
@@ -190,6 +602,116 @@ inline void dump(
     } else {
         out.put('\n');
         for (const auto& item : value.code) {
+            dump_detail::write_indent(out, indent + 4);
+            out.put('-');
+            if (!item) {
+                out << " null\n";
+            } else {
+                out.put('\n');
+                dump(out, ctx, *item, indent + 8);
+            }
+        }
+    }
+}
+
+template <class Context>
+inline void dump(
+    std::ostream& out, Context& ctx, const import_definition& value, int indent) {
+    dump_detail::write_indent(out, indent);
+    out << "_type: ImportDefinition\n";
+    dump_detail::write_indent(out, indent);
+    out << "ns_name:";
+    out.put(' ');
+    dump_value(out, ctx, value.ns_name);
+    out.put('\n');
+    dump_detail::write_indent(out, indent);
+    out << "function_head:";
+    if (!value.function_head) {
+        out << " null\n";
+    } else {
+        out.put('\n');
+        dump(out, ctx, *value.function_head, indent + 4);
+    }
+    dump_detail::write_indent(out, indent);
+    out << "alias:";
+    out.put(' ');
+    dump_value(out, ctx, value.alias);
+    out.put('\n');
+}
+
+template <class Context>
+inline void dump(
+    std::ostream& out, Context& ctx, const global_definition& value, int indent) {
+    dump_detail::write_indent(out, indent);
+    out << "_type: GlobalDefinition\n";
+    dump_detail::write_indent(out, indent);
+    out << "name:";
+    out.put(' ');
+    dump_value(out, ctx, value.name);
+    out.put('\n');
+    dump_detail::write_indent(out, indent);
+    out << "assigned_type:";
+    out.put(' ');
+    dump_value(out, ctx, value.assigned_type);
+    out.put('\n');
+    dump_detail::write_indent(out, indent);
+    out << "symbol_ref:";
+    out.put(' ');
+    dump_value(out, ctx, value.symbol_ref);
+    out.put('\n');
+    dump_detail::write_indent(out, indent);
+    out << "init_value:";
+    out.put(' ');
+    dump_value(out, ctx, value.init_value);
+    out.put('\n');
+}
+
+template <class Context>
+inline void dump(
+    std::ostream& out, Context& ctx, const module& value, int indent) {
+    dump_detail::write_indent(out, indent);
+    out << "_type: Module\n";
+    dump_detail::write_indent(out, indent);
+    out << "imports:";
+    if (value.imports.empty()) {
+        out << " []\n";
+    } else {
+        out.put('\n');
+        for (const auto& item : value.imports) {
+            dump_detail::write_indent(out, indent + 4);
+            out.put('-');
+            if (!item) {
+                out << " null\n";
+            } else {
+                out.put('\n');
+                dump(out, ctx, *item, indent + 8);
+            }
+        }
+    }
+    dump_detail::write_indent(out, indent);
+    out << "globals:";
+    if (value.globals.empty()) {
+        out << " []\n";
+    } else {
+        out.put('\n');
+        for (const auto& item : value.globals) {
+            dump_detail::write_indent(out, indent + 4);
+            out.put('-');
+            if (!item) {
+                out << " null\n";
+            } else {
+                out.put('\n');
+                dump(out, ctx, *item, indent + 8);
+            }
+        }
+    }
+    dump_detail::write_indent(out, indent);
+    out << "functions:";
+    if (value.functions.empty()) {
+        out << " []\n";
+    } else {
+        out.put('\n');
+        for (const auto& item : value.functions) {
             dump_detail::write_indent(out, indent + 4);
             out.put('-');
             if (!item) {

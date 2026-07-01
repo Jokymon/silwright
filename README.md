@@ -103,7 +103,7 @@ C++ backend types are mapped separately in `backend_cpp.map`:
 
 ```text
 @include <cstddef>
-@include "project/type_id.hpp"
+@include "project/symbol.hpp"
 
 identifier: std::string
 number: long

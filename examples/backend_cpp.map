@@ -1,10 +1,11 @@
 @include <cstddef>
 @include <cstdint>
-@include "type_id.hpp"
+@include "symbol.hpp"
 
 identifier: std::string
 number: long long
 boolean: bool
 type: type_id
+symbol: symbol_id
 character: std::uint32_t
 index: std::size_t

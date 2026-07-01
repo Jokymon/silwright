@@ -14,19 +14,83 @@ template <class Context>
 void dump_value(std::ostream& out, Context& ctx, const std::string& value);
 
 template <class Context>
-void dump_value(std::ostream& out, Context& ctx, bool value);
+void dump_value(std::ostream& out, Context& ctx, const bool& value);
 
 template <class Context>
-void dump(std::ostream& out, Context& ctx, const op_t& value, int indent = 0);
+void dump_value(
+    std::ostream& out, Context& ctx, const binary_op_t& value);
+
+template <class Context>
+void dump(std::ostream& out, Context& ctx, const binary_op_t& value, int indent = 0);
+
+template <class Context>
+void dump(std::ostream& out, Context& ctx, const place_elem& value, int indent = 0);
 
 template <class Context>
 void dump(std::ostream& out, Context& ctx, const expr& value, int indent = 0);
 
 template <class Context>
-void dump(std::ostream& out, Context& ctx, const variable& value, int indent = 0);
+void dump(std::ostream& out, Context& ctx, const base_var& value, int indent = 0);
+
+template <class Context>
+void dump(std::ostream& out, Context& ctx, const deref& value, int indent = 0);
+
+template <class Context>
+void dump(std::ostream& out, Context& ctx, const field& value, int indent = 0);
+
+template <class Context>
+void dump(std::ostream& out, Context& ctx, const place& value, int indent = 0);
 
 template <class Context>
 void dump(std::ostream& out, Context& ctx, const number& value, int indent = 0);
+
+template <class Context>
+void dump(std::ostream& out, Context& ctx, const char_literal& value, int indent = 0);
+
+template <class Context>
+void dump(std::ostream& out, Context& ctx, const bool_literal& value, int indent = 0);
+
+template <class Context>
+void dump(std::ostream& out, Context& ctx, const string_literal& value, int indent = 0);
+
+template <class Context>
+void dump(std::ostream& out, Context& ctx, const allocate_record_expression& value, int indent = 0);
+
+template <class Context>
+void dump(std::ostream& out, Context& ctx, const field_initialisation& value, int indent = 0);
+
+template <class Context>
+void dump(std::ostream& out, Context& ctx, const store_record_expression& value, int indent = 0);
+
+template <class Context>
+void dump(std::ostream& out, Context& ctx, const load_expression& value, int indent = 0);
+
+template <class Context>
+void dump(std::ostream& out, Context& ctx, const store_expression& value, int indent = 0);
+
+template <class Context>
+void dump(std::ostream& out, Context& ctx, const if_expression& value, int indent = 0);
+
+template <class Context>
+void dump(std::ostream& out, Context& ctx, const while_expression& value, int indent = 0);
+
+template <class Context>
+void dump(std::ostream& out, Context& ctx, const function_call& value, int indent = 0);
+
+template <class Context>
+void dump(std::ostream& out, Context& ctx, const cast_expression& value, int indent = 0);
+
+template <class Context>
+void dump(std::ostream& out, Context& ctx, const discard_expression& value, int indent = 0);
+
+template <class Context>
+void dump(std::ostream& out, Context& ctx, const return_expression& value, int indent = 0);
+
+template <class Context>
+void dump(std::ostream& out, Context& ctx, const break_statement& value, int indent = 0);
+
+template <class Context>
+void dump(std::ostream& out, Context& ctx, const unary_expression& value, int indent = 0);
 
 template <class Context>
 void dump(std::ostream& out, Context& ctx, const binary_expression& value, int indent = 0);
@@ -39,6 +103,15 @@ void dump(std::ostream& out, Context& ctx, const function_head& value, int inden
 
 template <class Context>
 void dump(std::ostream& out, Context& ctx, const function_definition& value, int indent = 0);
+
+template <class Context>
+void dump(std::ostream& out, Context& ctx, const import_definition& value, int indent = 0);
+
+template <class Context>
+void dump(std::ostream& out, Context& ctx, const global_definition& value, int indent = 0);
+
+template <class Context>
+void dump(std::ostream& out, Context& ctx, const module& value, int indent = 0);
 
 }  // namespace expressions
 

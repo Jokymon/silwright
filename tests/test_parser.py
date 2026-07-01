@@ -74,7 +74,7 @@ def test_parse_type_mappings() -> None:
 def test_parse_cpp_backend_includes_and_mappings() -> None:
     source = """\
 @include <cstddef>
-@include "project/type_id.hpp"
+@include "project/symbol.hpp"
 index: std::size_t
 type: project::type_id
 """
@@ -84,7 +84,7 @@ type: project::type_id
             TypeMapping("index", "std::size_t"),
             TypeMapping("type", "project::type_id"),
         ),
-        includes=("<cstddef>", '"project/type_id.hpp"'),
+        includes=("<cstddef>", '"project/symbol.hpp"'),
     )
 
 
