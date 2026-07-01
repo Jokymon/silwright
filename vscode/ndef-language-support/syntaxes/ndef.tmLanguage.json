@@ -10,10 +10,10 @@
       "include": "#declarations"
     },
     {
-      "include": "#keywords"
+      "include": "#fields"
     },
     {
-      "include": "#fields"
+      "include": "#keywords"
     },
     {
       "include": "#operators"
