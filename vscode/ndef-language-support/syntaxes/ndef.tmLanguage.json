@@ -1,0 +1,78 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "NDEF",
+  "scopeName": "source.ndef",
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#declarations"
+    },
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#fields"
+    },
+    {
+      "include": "#operators"
+    }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.ndef",
+          "match": "//.*$"
+        }
+      ]
+    },
+    "declarations": {
+      "patterns": [
+        {
+          "match": "\\b(node|choice|enum)\\b(?:\\s+)([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": {
+              "name": "keyword.control.declaration.ndef"
+            },
+            "2": {
+              "name": "entity.name.type.ndef"
+            }
+          }
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.ndef",
+          "match": "\\b(?:module|node|choice|enum|end|value)\\b"
+        }
+      ]
+    },
+    "fields": {
+      "patterns": [
+        {
+          "match": "\\b([A-Za-z_][A-Za-z0-9_]*)(\\s*)(:)",
+          "captures": {
+            "1": {
+              "name": "variable.other.member.ndef"
+            },
+            "3": {
+              "name": "punctuation.separator.key-value.ndef"
+            }
+          }
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.ndef",
+          "match": "[|*]"
+        }
+      ]
+    }
+  }
+}

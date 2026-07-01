@@ -1,0 +1,23 @@
+# NDEF Language Support
+
+Basic Visual Studio Code language support for struct-gen `.ndef` files.
+
+## Features
+
+- TextMate syntax highlighting for `module`, `node`, `choice`, `enum`, `end`, and `value`
+- Highlighting for `*` and `|` operators and `//` line comments
+- Declaration-name and field-name highlighting
+- Folding and automatic indentation for `node`, `choice`, and `enum` blocks
+- Toggle-line-comment support
+
+## Development
+
+Open this directory in Visual Studio Code and press `F5` to launch an Extension Development Host. Open an `.ndef` file in that window to exercise the extension.
+
+This is a declarative extension and therefore has no build step or runtime dependencies.
+
+To package it after installing `@vscode/vsce`:
+
+```console
+vsce package
+```

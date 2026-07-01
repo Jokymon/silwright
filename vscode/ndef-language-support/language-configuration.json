@@ -1,0 +1,15 @@
+{
+  "comments": {
+    "lineComment": "//"
+  },
+  "folding": {
+    "markers": {
+      "start": "^\\s*(?:node|choice|enum)\\b",
+      "end": "^\\s*end\\b"
+    }
+  },
+  "indentationRules": {
+    "increaseIndentPattern": "^\\s*(?:node|choice|enum)\\b.*$",
+    "decreaseIndentPattern": "^\\s*end\\b.*$"
+  }
+}
