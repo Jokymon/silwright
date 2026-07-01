@@ -154,3 +154,33 @@ def test_recursive_value_fields_are_rejected() -> None:
 
     with pytest.raises(GenerationError, match="cyclic value dependency"):
         generate_cpp(parsed, "bad.hpp")
+
+
+def test_optional_fields_use_optional_except_for_owned_node_pointers() -> None:
+    parsed = ParsedDefinitionFile(
+        Module(
+            "optional_fields",
+            (
+                Enum("Kind", ("One", "Two")),
+                Node("Child"),
+                Node(
+                    "Parent",
+                    (
+                        Field("name", "identifier", optional=True),
+                        Field("kind", "Kind", optional=True),
+                        Field("embedded", "Child", by_value=True, optional=True),
+                        Field("pointer", "Child", optional=True),
+                    ),
+                ),
+            ),
+        ),
+        (TypeMapping("identifier", "std::string"),),
+    )
+
+    header = generate_cpp(parsed, "optional_fields.hpp").header
+
+    assert "#include <optional>" in header
+    assert "std::optional<std::string> name;" in header
+    assert "std::optional<kind_t> kind;" in header
+    assert "std::optional<child> embedded;" in header
+    assert "std::unique_ptr<child> pointer;" in header

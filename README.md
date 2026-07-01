@@ -83,6 +83,9 @@ end
 
 - `node` declares a future C++ struct. Each field is written as `<name>: <type>`.
 - Prefixing a field type with `*`, as in `code: *Expr`, makes it a repeated field.
+- Prefixing a field type with `?`, as in `label: ?identifier`, makes it optional. Built-in,
+  enum, and `value` fields use `std::optional`; pointer-backed node and choice fields remain
+  `std::unique_ptr` because they already represent absence. `*` and `?` cannot be combined.
 - Prefixing a field type with `value`, as in `head: value FunctionHead`, embeds node or choice
   types directly instead of using `std::unique_ptr`. The modifiers compose as
   `parameters: *value Parameter` for `std::vector<parameter>`.
@@ -150,6 +153,8 @@ This section is maintained as requirements are discovered or changed during deve
 - Repeated fields use `std::vector` around the otherwise generated field type. For example,
   `*identifier` becomes `std::vector<std::string>` and `*Expr` becomes
   `std::vector<std::unique_ptr<expr>>`.
+- Optional fields use `std::optional` around the otherwise generated value type. Missing
+  optional values and null node pointers are both emitted as `null` by generated dumpers.
 - Value fields require complete C++ types. The generator dependency-orders affected structs
   and rejects recursive value-member cycles. Built-in and enum fields are already values, so
   applying `value` to them has no additional effect.
@@ -159,9 +164,8 @@ This section is maintained as requirements are discovered or changed during deve
 - Parsing currently validates syntax only. Duplicate declarations, unresolved references,
   naming rules for generated C++, mapping conflicts, and recursive type constraints remain
   future semantic-validation decisions.
-- Generated headers currently include `<memory>`, `<string>`, `<variant>`, and `<vector>`. A
-  future mapping format may need to carry required include information for arbitrary mapped
-  C++ types.
+- Generated headers currently include `<memory>`, `<optional>`, `<string>`, `<variant>`, and
+  `<vector>`, plus dependencies declared by the backend map.
 - Dump support is generated separately as `_dump.hpp`, `_dump.ipp`, and `_dump.cpp`. The IPP
   contains template implementations and is included at the end of the dump header.
 - Generated `dump` overloads emit YAML-like objects with four-space nesting, an artificial

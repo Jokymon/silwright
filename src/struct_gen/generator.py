@@ -50,7 +50,14 @@ def generate_cpp(parsed: ParsedDefinitionFile, header_name: str) -> GeneratedCpp
 
     rendered_body = "\n".join(body).rstrip()
     include_spellings = dict.fromkeys(
-        ("<memory>", "<string>", "<variant>", "<vector>", *parsed.backend_includes)
+        (
+            "<memory>",
+            "<optional>",
+            "<string>",
+            "<variant>",
+            "<vector>",
+            *parsed.backend_includes,
+        )
     )
     includes = "\n".join(f"#include {spelling}" for spelling in include_spellings)
     header = (
@@ -120,6 +127,7 @@ def _render_node(
 ) -> str:
     fields: list[str] = []
     for field in item.fields:
+        pointer_backed = False
         if field.type_name in mappings:
             field_type = mappings[field.type_name]
         else:
@@ -128,11 +136,14 @@ def _render_node(
                 field_type = f"{cpp_name(target.name)}_t"
             elif isinstance(target, (Node, Choice)):
                 named_type = cpp_name(target.name)
+                pointer_backed = not field.by_value
                 field_type = named_type if field.by_value else f"std::unique_ptr<{named_type}>"
             else:
                 raise GenerationError(f"unknown field type {field.type_name!r} in {item.name}")
         if field.multiple:
             field_type = f"std::vector<{field_type}>"
+        elif field.optional and not pointer_backed:
+            field_type = f"std::optional<{field_type}>"
         fields.append(f"    {field_type} {field.name};")
     members = "\n".join(fields)
     return f"struct {cpp_name(item.name)} {{\n{members}\n}};"

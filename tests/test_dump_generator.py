@@ -26,6 +26,8 @@ def _module() -> ParsedDefinitionFile:
                         Field("child", "Expr"),
                         Field("items", "Expr", multiple=True),
                         Field("inline_item", "Text", by_value=True),
+                        Field("optional_label", "identifier", optional=True),
+                        Field("optional_item", "Text", by_value=True, optional=True),
                     ),
                 ),
             ),
@@ -62,6 +64,8 @@ def test_dump_implementation_handles_all_field_shapes() -> None:
     assert "dump(out, ctx, value.inline_item, indent + 4);" in implementation
     assert 'out << " []\\n";' in implementation
     assert 'out << " null\\n";' in implementation
+    assert "dump_value(out, ctx, *value.optional_label);" in implementation
+    assert "dump(out, ctx, *value.optional_item, indent + 4);" in implementation
 
 
 def test_dump_implementation_uses_visit_enum_names_and_escaped_strings() -> None:

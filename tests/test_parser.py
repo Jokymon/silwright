@@ -179,6 +179,36 @@ def test_value_remains_valid_as_a_field_name() -> None:
     )
 
 
+def test_optional_modifier_parses_for_builtin_and_value_fields() -> None:
+    source = """\
+module example
+node Item
+    label: ?identifier
+    metadata: ?value Metadata
+    child: ?Child
+end
+"""
+
+    assert parse_definitions(source) == Module(
+        "example",
+        (
+            Node(
+                "Item",
+                (
+                    Field("label", "identifier", optional=True),
+                    Field("metadata", "Metadata", by_value=True, optional=True),
+                    Field("child", "Child", optional=True),
+                ),
+            ),
+        ),
+    )
+
+
+def test_multiple_and_optional_modifiers_cannot_be_combined() -> None:
+    with pytest.raises(UnexpectedInput):
+        parse_definitions("module example\nnode Item\n    values: *?identifier\nend\n")
+
+
 def test_comments_and_blank_lines_between_declarations_are_ignored() -> None:
     source = """\
 // Module comment

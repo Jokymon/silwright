@@ -283,6 +283,10 @@ inline void dump(
     dump_detail::write_indent(out, indent);
     out << "_type: LoadExpression\n";
     dump_detail::write_indent(out, indent);
+    out << "source:";
+    out.put('\n');
+    dump(out, ctx, value.source, indent + 4);
+    dump_detail::write_indent(out, indent);
     out << "assigned_type:";
     out.put(' ');
     dump_value(out, ctx, value.assigned_type);
@@ -294,6 +298,10 @@ inline void dump(
     std::ostream& out, Context& ctx, const store_expression& value, int indent) {
     dump_detail::write_indent(out, indent);
     out << "_type: StoreExpression\n";
+    dump_detail::write_indent(out, indent);
+    out << "target:";
+    out.put('\n');
+    dump(out, ctx, value.target, indent + 4);
     dump_detail::write_indent(out, indent);
     out << "value:";
     if (!value.value) {
@@ -634,9 +642,13 @@ inline void dump(
     }
     dump_detail::write_indent(out, indent);
     out << "alias:";
-    out.put(' ');
-    dump_value(out, ctx, value.alias);
-    out.put('\n');
+    if (!value.alias) {
+        out << " null\n";
+    } else {
+        out.put(' ');
+        dump_value(out, ctx, *value.alias);
+        out.put('\n');
+    }
 }
 
 template <class Context>

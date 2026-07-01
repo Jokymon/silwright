@@ -230,6 +230,7 @@ def _render_field_dump(
     target = declarations.get(field.type_name)
     structured = isinstance(target, (Node, Choice))
     pointer = structured and not field.by_value
+    optional_value = field.optional and not pointer
     access = f"value.{field.name}"
     prefix = (
         "    dump_detail::write_indent(out, indent);",
@@ -275,8 +276,18 @@ def _render_field_dump(
         )
 
     if structured:
-        target_value = f"*{access}" if pointer else access
+        target_value = f"*{access}" if pointer or optional_value else access
         if pointer:
+            return (
+                *prefix,
+                f"    if (!{access}) {{",
+                '        out << " null\\n";',
+                "    } else {",
+                "        out.put('\\n');",
+                f"        dump(out, ctx, {target_value}, indent + 4);",
+                "    }",
+            )
+        if optional_value:
             return (
                 *prefix,
                 f"    if (!{access}) {{",
@@ -290,6 +301,18 @@ def _render_field_dump(
             *prefix,
             "    out.put('\\n');",
             f"    dump(out, ctx, {target_value}, indent + 4);",
+        )
+
+    if optional_value:
+        return (
+            *prefix,
+            f"    if (!{access}) {{",
+            '        out << " null\\n";',
+            "    } else {",
+            '        out.put(\' \');',
+            f"        dump_value(out, ctx, *{access});",
+            "        out.put('\\n');",
+            "    }",
         )
 
     return (

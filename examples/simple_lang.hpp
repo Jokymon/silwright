@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <variant>
 #include <vector>
@@ -99,9 +100,11 @@ struct store_record_expression {
     type_id stored_type;
 };
 struct load_expression {
+    place source;
     type_id assigned_type;
 };
 struct store_expression {
+    place target;
     std::unique_ptr<expr> value;
     type_id stored_type;
 };
@@ -159,7 +162,7 @@ struct function_definition {
 struct import_definition {
     std::string ns_name;
     std::unique_ptr<function_head> function_head;
-    std::string alias;
+    std::optional<std::string> alias;
 };
 struct global_definition {
     std::string name;

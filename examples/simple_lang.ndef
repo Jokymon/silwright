@@ -57,12 +57,12 @@ node StoreRecordExpression
 end
 
 node LoadExpression
-    // source: lir_place
+    source: value Place
     assigned_type: type
 end
 
 node StoreExpression
-    // target: lir_place
+    target: value Place
     value: Expr
     stored_type: type
 end
@@ -161,7 +161,7 @@ end
 node ImportDefinition
     ns_name: identifier
     function_head: FunctionHead
-    alias: identifier
+    alias: ?identifier
 end
 
 node GlobalDefinition

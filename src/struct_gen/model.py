@@ -11,6 +11,7 @@ class Field:
     type_name: str
     multiple: bool = False
     by_value: bool = False
+    optional: bool = False
 
 
 @dataclass(frozen=True, slots=True)
