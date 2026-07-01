@@ -71,7 +71,8 @@ Generate `dump` and `dump_value` as function templates. The generic `dump_value`
 uses `operator<<`. Applications customize a value by defining a more-specific `dump_value`
 overload in the value type's namespace; an unqualified generated call finds it through
 argument-dependent lookup. This avoids runtime type erasure and lets compilers inline the
-customization call.
+customization call. If a value is not stream-insertable and no overload is found, the generic
+fallback issues a targeted compile-time diagnostic requesting a `dump_value` overload.
 
 Template declarations live in `_dump.hpp`; definitions live in `_dump.ipp`, which the header
 includes. A `_dump.cpp` file is still generated as the conventional translation-unit entry
@@ -95,7 +96,7 @@ Allow explicit include directives in `backend_cpp.map`:
 
 ```text
 @include <cstddef>
-@include "project/type_id.hpp"
+@include "project/symbol.hpp"
 
 index: std::size_t
 type: project::type_id

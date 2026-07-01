@@ -41,10 +41,20 @@ def generate_dump_cpp(
         "void dump_value(std::ostream& out, Context& ctx, const std::string& value);",
         "",
         "template <class Context>",
-        "void dump_value(std::ostream& out, Context& ctx, bool value);",
+        "void dump_value(std::ostream& out, Context& ctx, const bool& value);",
     ]
     for enum_item in enums:
-        public_declarations.extend(("", *_dump_declaration(f"{cpp_name(enum_item.name)}_t")))
+        enum_type = f"{cpp_name(enum_item.name)}_t"
+        public_declarations.extend(
+            (
+                "",
+                "template <class Context>",
+                "void dump_value(",
+                f"    std::ostream& out, Context& ctx, const {enum_type}& value);",
+                "",
+                *_dump_declaration(enum_type),
+            )
+        )
     for choice_item in choices:
         public_declarations.extend(("", *_dump_declaration(cpp_name(choice_item.name))))
     for node_item in nodes:
@@ -135,11 +145,20 @@ inline void write_quoted(std::ostream& out, std::string_view value) {
     out.put('"');
 }
 
+template <class>
+inline constexpr bool has_no_dump_value = false;
+
 }  // namespace dump_detail
 
 template <class Context, class Value>
 inline void dump_value(std::ostream& out, Context&, const Value& value) {
-    out << value;
+    if constexpr (requires { out << value; }) {
+        out << value;
+    } else {
+        static_assert(
+            dump_detail::has_no_dump_value<Value>,
+            "value is not streamable; provide a dump_value overload in its namespace");
+    }
 }
 
 template <class Context>
@@ -148,7 +167,7 @@ inline void dump_value(std::ostream& out, Context&, const std::string& value) {
 }
 
 template <class Context>
-inline void dump_value(std::ostream& out, Context&, bool value) {
+inline void dump_value(std::ostream& out, Context&, const bool& value) {
     out << (value ? "true" : "false");
 }'''
 
@@ -159,7 +178,7 @@ def _render_enum_dump(item: Enum) -> str:
         f'    case {type_name}::{value}: out << "{value}"; return;' for value in item.values
     )
     return f'''template <class Context>
-inline void dump_value(std::ostream& out, Context&, {type_name} value) {{
+inline void dump_value(std::ostream& out, Context&, const {type_name}& value) {{
     switch (value) {{
 {cases}
     }}

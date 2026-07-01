@@ -169,7 +169,8 @@ This section is maintained as requirements are discovered or changed during deve
   Strings are quoted and escaped, and enums use their original `.ndef` entry names.
 - Scalar values pass through an inline generic `dump_value` customization point. Its default
   uses `operator<<`; context-sensitive custom types can provide a more-specific overload in
-  the value type's namespace so it is found through argument-dependent lookup.
+  the value type's namespace so it is found through argument-dependent lookup. A mapped type
+  that is neither streamable nor customized produces a targeted compile-time diagnostic.
 
 ## Version control
 
