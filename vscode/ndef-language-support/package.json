@@ -2,11 +2,18 @@
   "name": "ndef-language-support",
   "displayName": "NDEF Language Support",
   "description": "Syntax highlighting and editor support for struct-gen node definition files.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "silvan-wegmann",
   "license": "MIT",
   "engines": {
     "vscode": "^1.85.0"
+  },
+  "main": "./extension.js",
+  "activationEvents": [
+    "onLanguage:ndef"
+  ],
+  "scripts": {
+    "test": "node --test"
   },
   "categories": [
     "Programming Languages"
