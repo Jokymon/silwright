@@ -111,6 +111,43 @@ def test_choice_rejects_separator_without_following_option() -> None:
         parse_definitions("module example\nchoice Expr\n    Variable |\nend\n")
 
 
+def test_enum_options_allow_mixed_multiline_layout() -> None:
+    source = """\
+module example
+enum BinaryOp
+    Multiply | Division | Modulus | Plus | Minus
+    | Equals | NotEquals | LessThan | LessThanEqual | GreaterThan | GreaterThanEqual
+    | AndOp | OrOp | Shl | Shr
+end
+"""
+
+    assert parse_definitions(source) == Module(
+        "example",
+        (
+            Enum(
+                "BinaryOp",
+                (
+                    "Multiply",
+                    "Division",
+                    "Modulus",
+                    "Plus",
+                    "Minus",
+                    "Equals",
+                    "NotEquals",
+                    "LessThan",
+                    "LessThanEqual",
+                    "GreaterThan",
+                    "GreaterThanEqual",
+                    "AndOp",
+                    "OrOp",
+                    "Shl",
+                    "Shr",
+                ),
+            ),
+        ),
+    )
+
+
 def test_value_modifier_parses_for_single_and_repeated_fields() -> None:
     source = """\
 module example

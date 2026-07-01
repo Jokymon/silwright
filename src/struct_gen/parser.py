@@ -24,9 +24,9 @@ _NDEF_GRAMMAR = r"""
     node_def: "node" NAME _NL+ field* "end" _NL+
     field: NAME ":" STAR? VALUE? NAME _NL+
     choice_def: "choice" NAME _NL+ choice_option_list _NL+ "end" _NL+
-    enum_def: "enum" NAME _NL+ option_list _NL+ "end" _NL+
-    option_list: NAME ("|" NAME)*
-    choice_option_list: NAME (_CHOICE_SEPARATOR NAME)*
+    enum_def: "enum" NAME _NL+ flexible_option_list _NL+ "end" _NL+
+    choice_option_list: flexible_option_list
+    flexible_option_list: NAME (_CHOICE_SEPARATOR NAME)*
 
     NAME: /[A-Za-z_][A-Za-z0-9_]*/
     STAR: "*"
@@ -80,11 +80,11 @@ class _NodeTransformer(Transformer[Token, object]):
     def node_def(self, name: Token, *fields: Field) -> Node:
         return Node(name=_text(name), fields=tuple(fields))
 
-    def option_list(self, *names: Token) -> tuple[str, ...]:
+    def flexible_option_list(self, *names: Token) -> tuple[str, ...]:
         return tuple(map(_text, names))
 
-    def choice_option_list(self, *names: Token) -> tuple[str, ...]:
-        return tuple(map(_text, names))
+    def choice_option_list(self, names: tuple[str, ...]) -> tuple[str, ...]:
+        return names
 
     def choice_def(self, name: Token, alternatives: tuple[str, ...]) -> Choice:
         return Choice(name=_text(name), alternatives=alternatives)

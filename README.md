@@ -91,6 +91,7 @@ end
   option or at the start of the following option's line, and these layouts may be mixed within
   one choice definition.
 - `enum` declares a set of new enumerator names rather than references to node types.
+- Enum entries support the same inline, multiline, and mixed `|` layouts as choice alternatives.
 - `end` closes every `node`, `choice`, and `enum` declaration.
 - Names currently use ASCII letters, digits, and underscores and cannot start with a digit.
 - `//` starts a comment that continues to the end of the line. Comments may occupy a complete
