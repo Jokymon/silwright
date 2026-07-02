@@ -37,9 +37,9 @@ uv run struct-gen examples/simple_lang.ndef
 ```
 
 The command automatically loads the required `backend_cpp.map` from the same directory, then
-writes `simple_lang.hpp`, `simple_lang.cpp`, `simple_lang_dump.hpp`, `simple_lang_dump.ipp`, and
-`simple_lang_dump.cpp` beside `simple_lang.ndef`. Existing output files with those names are
-replaced. Syntax errors include their source location.
+writes the model `.hpp`/`.cpp`, dump `_dump.hpp`/`_dump.ipp`/`_dump.cpp`, and visitor
+`_visitor.hpp`/`_visitor.cpp` files beside `simple_lang.ndef`. Existing generated output files
+are replaced. Syntax errors include their source location.
 
 Library users can call `struct_gen.parse_definition_file(path)` for the same combined lookup
 behavior. `struct_gen.parse_definitions(text)` and `struct_gen.parse_type_mappings(text)` are
@@ -175,6 +175,12 @@ This section is maintained as requirements are discovered or changed during deve
   uses `operator<<`; context-sensitive custom types can provide a more-specific overload in
   the value type's namespace so it is found through argument-dependent lookup. A mapped type
   that is neither streamable nor customized produces a targeted compile-time diagnostic.
+- Mutable visitor support is generated as `_visitor.hpp` and `_visitor.cpp`. Public `visit`
+  overloads accept every node and choice as an entry point. Node traversal calls protected
+  virtual `enter` and `leave` hooks around pointer-backed children; scalars and `value` fields
+  are deliberately skipped. Definitions referenced exclusively through `value` fields are
+  omitted from the visitor API, while unreferenced definitions remain possible entry points.
+  Derived visitors can override only the hooks they need.
 
 ## Version control
 

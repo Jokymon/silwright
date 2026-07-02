@@ -96,6 +96,7 @@ struct field_initialisation {
     std::unique_ptr<expr> value;
 };
 struct store_record_expression {
+    place target;
     std::vector<field_initialisation> initialisations;
     type_id stored_type;
 };
@@ -161,7 +162,7 @@ struct function_definition {
 };
 struct import_definition {
     std::string ns_name;
-    std::unique_ptr<function_head> function_head;
+    function_head function_head;
     std::optional<std::string> alias;
 };
 struct global_definition {

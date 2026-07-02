@@ -7,6 +7,7 @@ add_executable(
     simple_lang.cpp
     simple_lang_dump.cpp
     simple_lang_main.cpp
+    simple_lang_visitor.cpp
 )
 
 target_compile_features(simple_lang_example PRIVATE cxx_std_20)

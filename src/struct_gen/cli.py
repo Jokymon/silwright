@@ -6,6 +6,7 @@ from pathlib import Path
 
 from struct_gen.dump_generator import generate_dump_files
 from struct_gen.generator import generate_cpp_files
+from struct_gen.visitor_generator import generate_visitor_files
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -18,6 +19,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         parser.error("definition file must use the .ndef suffix")
     header, source = generate_cpp_files(definition)
     dump_header, dump_implementation, dump_source = generate_dump_files(definition)
-    generated = (header, source, dump_header, dump_implementation, dump_source)
+    visitor_header, visitor_source = generate_visitor_files(definition)
+    generated = (
+        header,
+        source,
+        dump_header,
+        dump_implementation,
+        dump_source,
+        visitor_header,
+        visitor_source,
+    )
     print(f"generated {', '.join(map(str, generated))}")
     return 0

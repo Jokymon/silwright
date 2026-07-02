@@ -258,6 +258,10 @@ inline void dump(
     dump_detail::write_indent(out, indent);
     out << "_type: StoreRecordExpression\n";
     dump_detail::write_indent(out, indent);
+    out << "target:";
+    out.put('\n');
+    dump(out, ctx, value.target, indent + 4);
+    dump_detail::write_indent(out, indent);
     out << "initialisations:";
     if (value.initialisations.empty()) {
         out << " []\n";
@@ -634,12 +638,8 @@ inline void dump(
     out.put('\n');
     dump_detail::write_indent(out, indent);
     out << "function_head:";
-    if (!value.function_head) {
-        out << " null\n";
-    } else {
-        out.put('\n');
-        dump(out, ctx, *value.function_head, indent + 4);
-    }
+    out.put('\n');
+    dump(out, ctx, value.function_head, indent + 4);
     dump_detail::write_indent(out, indent);
     out << "alias:";
     if (!value.alias) {

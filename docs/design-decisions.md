@@ -128,3 +128,22 @@ repetition prefix. Built-in types, enums, and structured fields marked `value` g
 wrapping those pointers in another optional layer would represent the same absent/present state
 twice without a current semantic need. Generated dumpers emit both disengaged optionals and
 null owning pointers as `null`.
+
+## External mutable visitor
+
+Each module generates a `visitor` class in `_visitor.hpp` and `_visitor.cpp`. Traversal remains
+external to model structs, avoiding generated `accept` methods and coupling data objects to a
+visitor hierarchy. Public nonvirtual `visit(T&)` overloads provide mutable entry points for
+nodes and choices. Choice overloads dispatch with `std::visit`.
+
+For each node type, protected virtual `enter(T&)` and `leave(T&)` hooks run before and after its
+children. Their base implementations are empty, so derived passes override only relevant
+events without reimplementing traversal. Only pointer-backed node and choice fields are
+children: scalar fields and fields explicitly marked `value` are not traversed. The fixed class
+name reserves the generated C++ name `visitor` within the module namespace.
+
+Visitor overloads and hooks are omitted for definitions referenced exclusively through `value`
+fields. A choice used only as a value also does not pull its alternatives into the visitor API.
+Definitions with a non-value use remain visitable, and definitions with no incoming use remain
+available as traversal roots. This keeps generated visitor APIs aligned with actual traversal
+semantics without requiring another language annotation.

@@ -1,0 +1,267 @@
+#include "simple_lang_visitor.hpp"
+
+#include <variant>
+
+namespace expressions {
+
+void visitor::visit(expr& value) {
+    std::visit([this](auto& alternative) { visit(alternative); }, value);
+}
+
+void visitor::visit(number& value) {
+    enter(value);
+    leave(value);
+}
+
+void visitor::visit(char_literal& value) {
+    enter(value);
+    leave(value);
+}
+
+void visitor::visit(bool_literal& value) {
+    enter(value);
+    leave(value);
+}
+
+void visitor::visit(string_literal& value) {
+    enter(value);
+    leave(value);
+}
+
+void visitor::visit(allocate_record_expression& value) {
+    enter(value);
+    leave(value);
+}
+
+void visitor::visit(store_record_expression& value) {
+    enter(value);
+    leave(value);
+}
+
+void visitor::visit(load_expression& value) {
+    enter(value);
+    leave(value);
+}
+
+void visitor::visit(store_expression& value) {
+    enter(value);
+    if (value.value) {
+        visit(*value.value);
+    }
+    leave(value);
+}
+
+void visitor::visit(if_expression& value) {
+    enter(value);
+    if (value.condition) {
+        visit(*value.condition);
+    }
+    for (auto& child : value.then_code) {
+        if (child) {
+            visit(*child);
+        }
+    }
+    for (auto& child : value.else_code) {
+        if (child) {
+            visit(*child);
+        }
+    }
+    leave(value);
+}
+
+void visitor::visit(while_expression& value) {
+    enter(value);
+    if (value.condition) {
+        visit(*value.condition);
+    }
+    for (auto& child : value.while_code) {
+        if (child) {
+            visit(*child);
+        }
+    }
+    leave(value);
+}
+
+void visitor::visit(function_call& value) {
+    enter(value);
+    for (auto& child : value.arguments) {
+        if (child) {
+            visit(*child);
+        }
+    }
+    leave(value);
+}
+
+void visitor::visit(cast_expression& value) {
+    enter(value);
+    if (value.expression) {
+        visit(*value.expression);
+    }
+    leave(value);
+}
+
+void visitor::visit(discard_expression& value) {
+    enter(value);
+    if (value.expression) {
+        visit(*value.expression);
+    }
+    leave(value);
+}
+
+void visitor::visit(return_expression& value) {
+    enter(value);
+    if (value.expression) {
+        visit(*value.expression);
+    }
+    leave(value);
+}
+
+void visitor::visit(break_statement& value) {
+    enter(value);
+    leave(value);
+}
+
+void visitor::visit(unary_expression& value) {
+    enter(value);
+    if (value.expr) {
+        visit(*value.expr);
+    }
+    leave(value);
+}
+
+void visitor::visit(binary_expression& value) {
+    enter(value);
+    if (value.left) {
+        visit(*value.left);
+    }
+    if (value.right) {
+        visit(*value.right);
+    }
+    leave(value);
+}
+
+void visitor::visit(function_definition& value) {
+    enter(value);
+    for (auto& child : value.code) {
+        if (child) {
+            visit(*child);
+        }
+    }
+    leave(value);
+}
+
+void visitor::visit(import_definition& value) {
+    enter(value);
+    leave(value);
+}
+
+void visitor::visit(global_definition& value) {
+    enter(value);
+    leave(value);
+}
+
+void visitor::visit(module& value) {
+    enter(value);
+    for (auto& child : value.imports) {
+        if (child) {
+            visit(*child);
+        }
+    }
+    for (auto& child : value.globals) {
+        if (child) {
+            visit(*child);
+        }
+    }
+    for (auto& child : value.functions) {
+        if (child) {
+            visit(*child);
+        }
+    }
+    leave(value);
+}
+
+void visitor::enter(number&) {}
+
+void visitor::leave(number&) {}
+
+void visitor::enter(char_literal&) {}
+
+void visitor::leave(char_literal&) {}
+
+void visitor::enter(bool_literal&) {}
+
+void visitor::leave(bool_literal&) {}
+
+void visitor::enter(string_literal&) {}
+
+void visitor::leave(string_literal&) {}
+
+void visitor::enter(allocate_record_expression&) {}
+
+void visitor::leave(allocate_record_expression&) {}
+
+void visitor::enter(store_record_expression&) {}
+
+void visitor::leave(store_record_expression&) {}
+
+void visitor::enter(load_expression&) {}
+
+void visitor::leave(load_expression&) {}
+
+void visitor::enter(store_expression&) {}
+
+void visitor::leave(store_expression&) {}
+
+void visitor::enter(if_expression&) {}
+
+void visitor::leave(if_expression&) {}
+
+void visitor::enter(while_expression&) {}
+
+void visitor::leave(while_expression&) {}
+
+void visitor::enter(function_call&) {}
+
+void visitor::leave(function_call&) {}
+
+void visitor::enter(cast_expression&) {}
+
+void visitor::leave(cast_expression&) {}
+
+void visitor::enter(discard_expression&) {}
+
+void visitor::leave(discard_expression&) {}
+
+void visitor::enter(return_expression&) {}
+
+void visitor::leave(return_expression&) {}
+
+void visitor::enter(break_statement&) {}
+
+void visitor::leave(break_statement&) {}
+
+void visitor::enter(unary_expression&) {}
+
+void visitor::leave(unary_expression&) {}
+
+void visitor::enter(binary_expression&) {}
+
+void visitor::leave(binary_expression&) {}
+
+void visitor::enter(function_definition&) {}
+
+void visitor::leave(function_definition&) {}
+
+void visitor::enter(import_definition&) {}
+
+void visitor::leave(import_definition&) {}
+
+void visitor::enter(global_definition&) {}
+
+void visitor::leave(global_definition&) {}
+
+void visitor::enter(module&) {}
+
+void visitor::leave(module&) {}
+
+}  // namespace expressions

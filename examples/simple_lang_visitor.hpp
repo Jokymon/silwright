@@ -1,0 +1,79 @@
+#pragma once
+
+#include "simple_lang.hpp"
+
+namespace expressions {
+
+class visitor {
+public:
+    virtual ~visitor() = default;
+
+    void visit(number& value);
+    void visit(char_literal& value);
+    void visit(bool_literal& value);
+    void visit(string_literal& value);
+    void visit(allocate_record_expression& value);
+    void visit(store_record_expression& value);
+    void visit(load_expression& value);
+    void visit(store_expression& value);
+    void visit(if_expression& value);
+    void visit(while_expression& value);
+    void visit(function_call& value);
+    void visit(cast_expression& value);
+    void visit(discard_expression& value);
+    void visit(return_expression& value);
+    void visit(break_statement& value);
+    void visit(unary_expression& value);
+    void visit(binary_expression& value);
+    void visit(expr& value);
+    void visit(function_definition& value);
+    void visit(import_definition& value);
+    void visit(global_definition& value);
+    void visit(module& value);
+
+protected:
+    virtual void enter(number& value);
+    virtual void leave(number& value);
+    virtual void enter(char_literal& value);
+    virtual void leave(char_literal& value);
+    virtual void enter(bool_literal& value);
+    virtual void leave(bool_literal& value);
+    virtual void enter(string_literal& value);
+    virtual void leave(string_literal& value);
+    virtual void enter(allocate_record_expression& value);
+    virtual void leave(allocate_record_expression& value);
+    virtual void enter(store_record_expression& value);
+    virtual void leave(store_record_expression& value);
+    virtual void enter(load_expression& value);
+    virtual void leave(load_expression& value);
+    virtual void enter(store_expression& value);
+    virtual void leave(store_expression& value);
+    virtual void enter(if_expression& value);
+    virtual void leave(if_expression& value);
+    virtual void enter(while_expression& value);
+    virtual void leave(while_expression& value);
+    virtual void enter(function_call& value);
+    virtual void leave(function_call& value);
+    virtual void enter(cast_expression& value);
+    virtual void leave(cast_expression& value);
+    virtual void enter(discard_expression& value);
+    virtual void leave(discard_expression& value);
+    virtual void enter(return_expression& value);
+    virtual void leave(return_expression& value);
+    virtual void enter(break_statement& value);
+    virtual void leave(break_statement& value);
+    virtual void enter(unary_expression& value);
+    virtual void leave(unary_expression& value);
+    virtual void enter(binary_expression& value);
+    virtual void leave(binary_expression& value);
+    virtual void enter(function_definition& value);
+    virtual void leave(function_definition& value);
+    virtual void enter(import_definition& value);
+    virtual void leave(import_definition& value);
+    virtual void enter(global_definition& value);
+    virtual void leave(global_definition& value);
+    virtual void enter(module& value);
+    virtual void leave(module& value);
+};
+
+}  // namespace expressions

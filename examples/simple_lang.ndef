@@ -160,7 +160,7 @@ end
 
 node ImportDefinition
     ns_name: identifier
-    function_head: FunctionHead
+    function_head: value FunctionHead
     alias: ?identifier
 end
 
