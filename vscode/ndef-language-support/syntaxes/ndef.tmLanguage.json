@@ -31,7 +31,7 @@
     "declarations": {
       "patterns": [
         {
-          "match": "\\b(node|choice|enum)\\b(?:\\s+)([A-Za-z_][A-Za-z0-9_]*)",
+          "match": "\\b(node|trait|choice|enum)\\b(?:\\s+)([A-Za-z_][A-Za-z0-9_]*)",
           "captures": {
             "1": {
               "name": "keyword.control.declaration.ndef"
@@ -47,7 +47,7 @@
       "patterns": [
         {
           "name": "keyword.control.ndef",
-          "match": "\\b(?:module|node|choice|enum|end|value)\\b"
+          "match": "\\b(?:module|node|trait|choice|enum|end|value|with)\\b"
         }
       ]
     },
@@ -70,7 +70,7 @@
       "patterns": [
         {
           "name": "keyword.operator.ndef",
-          "match": "[|*]"
+          "match": "[|*?]"
         }
       ]
     }

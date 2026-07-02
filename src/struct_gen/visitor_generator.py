@@ -3,8 +3,8 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-from struct_gen.generator import GenerationError, cpp_name
-from struct_gen.model import Choice, Enum, Node, ParsedDefinitionFile
+from struct_gen.generator import GenerationError, cpp_name, resolve_node_fields
+from struct_gen.model import Choice, Enum, Node, ParsedDefinitionFile, Trait
 from struct_gen.parser import parse_definition_file
 
 
@@ -25,6 +25,7 @@ def generate_visitor_cpp(
     declarations = {item.name: item for item in parsed.module.definitions}
     if len(declarations) != len(parsed.module.definitions):
         raise GenerationError("duplicate definitions cannot generate a visitor")
+    resolve_node_fields(parsed.module, declarations)
     if any(cpp_name(item.name) == "visitor" for item in parsed.module.definitions):
         raise GenerationError("definition name conflicts with generated visitor class")
 
@@ -110,7 +111,7 @@ def _render_choice_visit(item: Choice) -> str:
 
 def _render_node_visit(
     item: Node,
-    declarations: dict[str, Node | Choice | Enum],
+    declarations: dict[str, Node | Trait | Choice | Enum],
 ) -> str:
     statements = ["    enter(value);"]
     for field in item.fields:
@@ -152,7 +153,7 @@ void visitor::leave({type_name}&) {{}}'''
 
 def _visitable_definition_names(
     parsed: ParsedDefinitionFile,
-    declarations: dict[str, Node | Choice | Enum],
+    declarations: dict[str, Node | Trait | Choice | Enum],
 ) -> set[str]:
     """Find definitions that can participate in pointer-backed traversal."""
     structured = {

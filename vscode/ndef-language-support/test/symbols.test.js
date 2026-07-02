@@ -2,10 +2,12 @@ const assert = require("node:assert/strict");
 const test = require("node:test");
 const { findDeclarations } = require("../src/symbols");
 
-test("finds node, choice, and enum declaration names", () => {
+test("finds node, trait, choice, and enum declaration names", () => {
   const text = [
     "module sample",
     "node Number",
+    "end",
+    "trait Location",
     "end",
     "choice Expr",
     "    Number",
@@ -18,7 +20,7 @@ test("finds node, choice, and enum declaration names", () => {
 
   const declarations = findDeclarations(text);
 
-  assert.deepEqual([...declarations.keys()], ["Number", "Expr", "Op"]);
+  assert.deepEqual([...declarations.keys()], ["Number", "Location", "Expr", "Op"]);
   for (const [name, range] of declarations) {
     assert.equal(text.slice(range.start, range.end), name);
   }

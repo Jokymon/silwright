@@ -1,5 +1,5 @@
 const DECLARATION_PATTERN =
-  /^\s*(?:node|choice|enum)\s+([A-Za-z_][A-Za-z0-9_]*)\b/gm;
+  /^\s*(?:node|trait|choice|enum)\s+([A-Za-z_][A-Za-z0-9_]*)\b/gm;
 
 /**
  * Find type declarations in an NDEF document.

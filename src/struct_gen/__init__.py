@@ -10,6 +10,7 @@ from struct_gen.model import (
     Module,
     Node,
     ParsedDefinitionFile,
+    Trait,
     TypeMapping,
 )
 from struct_gen.parser import (
@@ -33,6 +34,7 @@ __all__ = [
     "Node",
     "ParsedDefinitionFile",
     "TypeMapping",
+    "Trait",
     "cpp_name",
     "generate_cpp",
     "generate_dump_cpp",

@@ -4,12 +4,13 @@ Basic Visual Studio Code language support for struct-gen `.ndef` files.
 
 ## Features
 
-- TextMate syntax highlighting for `module`, `node`, `choice`, `enum`, `end`, and `value`
+- TextMate syntax highlighting for `module`, `node`, `trait`, `choice`, `enum`, `end`, `value`,
+  and `with`
 - Highlighting for `*` and `|` operators and `//` line comments
 - Declaration-name and field-name highlighting
-- Folding and automatic indentation for `node`, `choice`, and `enum` blocks
+- Folding and automatic indentation for `node`, `trait`, `choice`, and `enum` blocks
 - Toggle-line-comment support
-- Go to Definition for node, choice, and enum types in the current file
+- Go to Definition for node, trait, choice, and enum types in the current file
 
 ## Development
 

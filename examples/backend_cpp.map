@@ -9,3 +9,4 @@ type: type_id
 symbol: symbol_id
 character: std::uint32_t
 index: std::size_t
+source_range: source_range

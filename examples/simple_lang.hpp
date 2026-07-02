@@ -29,6 +29,8 @@ enum class binary_op_t {
     Shr
 };
 
+struct location;
+struct attributes;
 struct base_var;
 struct deref;
 struct field;
@@ -57,6 +59,13 @@ struct function_definition;
 struct import_definition;
 struct global_definition;
 struct module;
+
+struct location {
+    source_range location;
+};
+struct attributes {
+
+};
 
 using place_elem = std::variant<deref, field>;
 using expr = std::variant<number, char_literal, bool_literal, string_literal, allocate_record_expression, store_record_expression, load_expression, store_expression, if_expression, while_expression, function_call, cast_expression, discard_expression, return_expression, break_statement, unary_expression, binary_expression>;
@@ -152,26 +161,26 @@ struct function_signature {
     std::string return_type;
     std::vector<std::string> parameter_types;
 };
-struct function_head {
+struct function_head : public location {
     std::string name;
     function_signature signature;
 };
-struct function_definition {
+struct function_definition : public attributes {
     function_head head;
     std::vector<std::unique_ptr<expr>> code;
 };
-struct import_definition {
+struct import_definition : public location {
     std::string ns_name;
     function_head function_head;
     std::optional<std::string> alias;
 };
-struct global_definition {
+struct global_definition : public location {
     std::string name;
     type_id assigned_type;
     symbol_id symbol_ref;
     long long init_value;
 };
-struct module {
+struct module : public location {
     std::vector<std::unique_ptr<import_definition>> imports;
     std::vector<std::unique_ptr<global_definition>> globals;
     std::vector<std::unique_ptr<function_definition>> functions;

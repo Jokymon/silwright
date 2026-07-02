@@ -10,6 +10,7 @@ from struct_gen import (
     Module,
     Node,
     ParsedDefinitionFile,
+    Trait,
     TypeMapping,
     cpp_name,
     generate_cpp,
@@ -184,3 +185,61 @@ def test_optional_fields_use_optional_except_for_owned_node_pointers() -> None:
     assert "std::optional<kind_t> kind;" in header
     assert "std::optional<child> embedded;" in header
     assert "std::unique_ptr<child> pointer;" in header
+
+
+def test_traits_generate_bases_and_inherited_fields() -> None:
+    parsed = ParsedDefinitionFile(
+        Module(
+            "example",
+            (
+                Trait("Location", (Field("location", "source_range"),)),
+                Node(
+                    "FunctionHead",
+                    (Field("name", "identifier"),),
+                    traits=("Location",),
+                ),
+            ),
+        ),
+        (
+            TypeMapping("source_range", "project::source_range"),
+            TypeMapping("identifier", "std::string"),
+        ),
+    )
+
+    header = generate_cpp(parsed, "example.hpp").header
+
+    assert "struct location {\n    project::source_range location;\n};" in header
+    assert "struct function_head : public location {" in header
+    assert "std::string name;" in header
+    assert header.count("project::source_range location;") == 1
+
+
+def test_trait_field_collisions_are_rejected() -> None:
+    parsed = ParsedDefinitionFile(
+        Module(
+            "bad",
+            (
+                Trait("Location", (Field("location", "source_range"),)),
+                Node(
+                    "Item",
+                    (Field("location", "source_range"),),
+                    traits=("Location",),
+                ),
+            ),
+        ),
+        (TypeMapping("source_range", "int"),),
+    )
+
+    with pytest.raises(GenerationError, match="duplicate field 'location' in Item"):
+        generate_cpp(parsed, "bad.hpp")
+
+
+def test_traits_cannot_be_choice_alternatives() -> None:
+    parsed = ParsedDefinitionFile(
+        Module("bad", (Trait("Location"), Choice("Item", ("Location",)))), ()
+    )
+
+    with pytest.raises(
+        GenerationError, match="trait 'Location' cannot be a choice alternative"
+    ):
+        generate_cpp(parsed, "bad.hpp")

@@ -3,8 +3,8 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-from struct_gen.generator import GenerationError, cpp_name
-from struct_gen.model import Choice, Enum, Field, Node, ParsedDefinitionFile
+from struct_gen.generator import GenerationError, cpp_name, resolve_node_fields
+from struct_gen.model import Choice, Enum, Field, Node, ParsedDefinitionFile, Trait
 from struct_gen.parser import parse_definition_file
 
 
@@ -31,6 +31,7 @@ def generate_dump_cpp(
     enums = tuple(item for item in parsed.module.definitions if isinstance(item, Enum))
     choices = tuple(item for item in parsed.module.definitions if isinstance(item, Choice))
     nodes = tuple(item for item in parsed.module.definitions if isinstance(item, Node))
+    node_fields = resolve_node_fields(parsed.module, declarations)
     namespace = parsed.module.name
 
     public_declarations = [
@@ -74,7 +75,9 @@ def generate_dump_cpp(
     definitions = [_dump_helpers()]
     definitions.extend(_render_enum_dump(item) for item in enums)
     definitions.extend(_render_choice_dump(item) for item in choices)
-    definitions.extend(_render_node_dump(item, declarations) for item in nodes)
+    definitions.extend(
+        _render_node_dump(item, node_fields[item.name], declarations) for item in nodes
+    )
     implementation = (
         "#pragma once\n\n"
         "#include <string_view>\n"
@@ -207,13 +210,14 @@ inline void dump(
 
 def _render_node_dump(
     item: Node,
-    declarations: dict[str, Node | Choice | Enum],
+    fields: tuple[Field, ...],
+    declarations: dict[str, Node | Trait | Choice | Enum],
 ) -> str:
     lines = [
         "    dump_detail::write_indent(out, indent);",
         f'    out << "_type: {item.name}\\n";',
     ]
-    for field in item.fields:
+    for field in fields:
         lines.extend(_render_field_dump(field, declarations))
     body = "\n".join(lines)
     return f'''template <class Context>
@@ -225,7 +229,7 @@ inline void dump(
 
 def _render_field_dump(
     field: Field,
-    declarations: dict[str, Node | Choice | Enum],
+    declarations: dict[str, Node | Trait | Choice | Enum],
 ) -> tuple[str, ...]:
     target = declarations.get(field.type_name)
     structured = isinstance(target, (Node, Choice))

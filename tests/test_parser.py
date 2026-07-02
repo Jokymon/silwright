@@ -9,6 +9,7 @@ from struct_gen import (
     Module,
     Node,
     ParsedDefinitionFile,
+    Trait,
     TypeMapping,
     parse_cpp_backend_config,
     parse_definition_file,
@@ -207,6 +208,34 @@ end
 def test_multiple_and_optional_modifiers_cannot_be_combined() -> None:
     with pytest.raises(UnexpectedInput):
         parse_definitions("module example\nnode Item\n    values: *?identifier\nend\n")
+
+
+def test_traits_and_node_trait_lists_are_parsed() -> None:
+    source = """\
+module example
+trait Location
+    location: source_range
+end
+trait Documented
+    documentation: identifier
+end
+node FunctionHead with Location, Documented
+    name: identifier
+end
+"""
+
+    assert parse_definitions(source) == Module(
+        "example",
+        (
+            Trait("Location", (Field("location", "source_range"),)),
+            Trait("Documented", (Field("documentation", "identifier"),)),
+            Node(
+                "FunctionHead",
+                (Field("name", "identifier"),),
+                traits=("Location", "Documented"),
+            ),
+        ),
+    )
 
 
 def test_comments_and_blank_lines_between_declarations_are_ignored() -> None:

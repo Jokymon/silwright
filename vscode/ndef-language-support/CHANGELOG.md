@@ -1,5 +1,10 @@
 # Change Log
 
+## 0.3.0 - 2026-07-03
+
+- Add highlighting, folding, indentation, and definition lookup for `trait` declarations.
+- Highlight the `with` keyword and optional-field `?` operator.
+
 ## 0.2.0
 
 - Add Go to Definition for node, choice, and enum types in the current NDEF file.

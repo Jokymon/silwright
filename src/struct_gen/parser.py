@@ -13,6 +13,7 @@ from struct_gen.model import (
     Module,
     Node,
     ParsedDefinitionFile,
+    Trait,
     TypeMapping,
 )
 
@@ -20,8 +21,10 @@ _NDEF_GRAMMAR = r"""
     start: _NL* module_decl _NL+ definition*
     module_decl: "module" NAME
 
-    ?definition: node_def | choice_def | enum_def
-    node_def: "node" NAME _NL+ field* "end" _NL+
+    ?definition: node_def | trait_def | choice_def | enum_def
+    node_def: "node" NAME trait_list? _NL+ field* "end" _NL+
+    trait_def: "trait" NAME _NL+ field* "end" _NL+
+    trait_list: "with" NAME ("," NAME)*
     field: NAME ":" (STAR | OPTIONAL)? VALUE? NAME _NL+
     choice_def: "choice" NAME _NL+ choice_option_list _NL+ "end" _NL+
     enum_def: "enum" NAME _NL+ flexible_option_list _NL+ "end" _NL+
@@ -79,8 +82,16 @@ class _NodeTransformer(Transformer[Token, object]):
             optional="OPTIONAL" in modifiers,
         )
 
-    def node_def(self, name: Token, *fields: Field) -> Node:
-        return Node(name=_text(name), fields=tuple(fields))
+    def trait_list(self, *names: Token) -> tuple[str, ...]:
+        return tuple(map(_text, names))
+
+    def node_def(self, name: Token, *parts: Field | tuple[str, ...]) -> Node:
+        traits = next((part for part in parts if isinstance(part, tuple)), ())
+        fields = tuple(part for part in parts if isinstance(part, Field))
+        return Node(name=_text(name), fields=fields, traits=traits)
+
+    def trait_def(self, name: Token, *fields: Field) -> Trait:
+        return Trait(name=_text(name), fields=tuple(fields))
 
     def flexible_option_list(self, *names: Token) -> tuple[str, ...]:
         return tuple(map(_text, names))

@@ -5,6 +5,7 @@ from struct_gen import (
     Module,
     Node,
     ParsedDefinitionFile,
+    Trait,
     TypeMapping,
     generate_dump_cpp,
 )
@@ -15,6 +16,7 @@ def _module() -> ParsedDefinitionFile:
         Module(
             "syntax",
             (
+                Trait("Location", (Field("location", "identifier"),)),
                 Node("Text", (Field("value", "identifier"),)),
                 Choice("Expr", ("Text", "Group")),
                 Enum("Kind", ("Plain", "Nested")),
@@ -29,6 +31,7 @@ def _module() -> ParsedDefinitionFile:
                         Field("optional_label", "identifier", optional=True),
                         Field("optional_item", "Text", by_value=True, optional=True),
                     ),
+                    traits=("Location",),
                 ),
             ),
         ),
@@ -55,6 +58,7 @@ def test_dump_implementation_handles_all_field_shapes() -> None:
     ).implementation
 
     assert 'out << "_type: Group\\n";' in implementation
+    assert 'out << "location:";' in implementation
     assert 'out << "kind:";' in implementation
     assert "dump_value(out, ctx, value.kind);" in implementation
     assert "if (!value.child)" in implementation

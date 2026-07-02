@@ -20,6 +20,15 @@ class Node:
 
     name: str
     fields: tuple[Field, ...] = ()
+    traits: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class Trait:
+    """Reusable fields generated as a base struct for nodes."""
+
+    name: str
+    fields: tuple[Field, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -38,7 +47,7 @@ class Enum:
     values: tuple[str, ...]
 
 
-type Definition = Node | Choice | Enum
+type Definition = Node | Trait | Choice | Enum
 
 
 @dataclass(frozen=True, slots=True)

@@ -82,6 +82,8 @@ end
 ```
 
 - `node` declares a future C++ struct. Each field is written as `<name>: <type>`.
+- `trait` declares reusable fields. A node applies one or more traits with
+  `node FunctionHead with Location, Documented`; generated traits are public base structs.
 - Prefixing a field type with `*`, as in `code: *Expr`, makes it a repeated field.
 - Prefixing a field type with `?`, as in `label: ?identifier`, makes it optional. Built-in,
   enum, and `value` fields use `std::optional`; pointer-backed node and choice fields remain
@@ -95,7 +97,7 @@ end
   one choice definition.
 - `enum` declares a set of new enumerator names rather than references to node types.
 - Enum entries support the same inline, multiline, and mixed `|` layouts as choice alternatives.
-- `end` closes every `node`, `choice`, and `enum` declaration.
+- `end` closes every `node`, `trait`, `choice`, and `enum` declaration.
 - Names currently use ASCII letters, digits, and underscores and cannot start with a digit.
 - `//` starts a comment that continues to the end of the line. Comments may occupy a complete
   line or follow regular definition code. Multiline comments are not supported. Blank lines
@@ -137,7 +139,7 @@ This section is maintained as requirements are discovered or changed during deve
 - A `.ndef` file contains exactly one module and must start with a module declaration.
 - `.ndef` comments start with `//` and continue through the end of the current line; there is
   no multiline comment syntax.
-- A module may contain `node`, `choice`, and `enum` declarations in source order.
+- A module may contain `node`, `trait`, `choice`, and `enum` declarations in source order.
 - Node fields and choice alternatives reference types by name. Enums introduce values by
   name. This distinction prevents enum values from being mistaken for type references.
 - Backend types and their C++ spellings live in the required `backend_cpp.map` file beside
@@ -150,6 +152,9 @@ This section is maintained as requirements are discovered or changed during deve
 - Definition names are converted from CamelCase to snake_case. Enum names additionally use
   a `_t` suffix. Enum fields are scalar; node and choice fields use `std::unique_ptr`; built-in
   fields use their mapped C++ spelling.
+- Traits generate public base structs and do not participate in choices or visitor traversal.
+  Trait fields are flattened into node dump output. Unknown traits, duplicate applications,
+  and inherited/local field-name collisions are rejected before C++ is emitted.
 - Repeated fields use `std::vector` around the otherwise generated field type. For example,
   `*identifier` becomes `std::vector<std::string>` and `*Expr` becomes
   `std::vector<std::unique_ptr<expr>>`.

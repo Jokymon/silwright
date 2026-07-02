@@ -588,6 +588,11 @@ inline void dump(
     dump_detail::write_indent(out, indent);
     out << "_type: FunctionHead\n";
     dump_detail::write_indent(out, indent);
+    out << "location:";
+    out.put(' ');
+    dump_value(out, ctx, value.location);
+    out.put('\n');
+    dump_detail::write_indent(out, indent);
     out << "name:";
     out.put(' ');
     dump_value(out, ctx, value.name);
@@ -632,6 +637,11 @@ inline void dump(
     dump_detail::write_indent(out, indent);
     out << "_type: ImportDefinition\n";
     dump_detail::write_indent(out, indent);
+    out << "location:";
+    out.put(' ');
+    dump_value(out, ctx, value.location);
+    out.put('\n');
+    dump_detail::write_indent(out, indent);
     out << "ns_name:";
     out.put(' ');
     dump_value(out, ctx, value.ns_name);
@@ -656,6 +666,11 @@ inline void dump(
     std::ostream& out, Context& ctx, const global_definition& value, int indent) {
     dump_detail::write_indent(out, indent);
     out << "_type: GlobalDefinition\n";
+    dump_detail::write_indent(out, indent);
+    out << "location:";
+    out.put(' ');
+    dump_value(out, ctx, value.location);
+    out.put('\n');
     dump_detail::write_indent(out, indent);
     out << "name:";
     out.put(' ');
@@ -683,6 +698,11 @@ inline void dump(
     std::ostream& out, Context& ctx, const module& value, int indent) {
     dump_detail::write_indent(out, indent);
     out << "_type: Module\n";
+    dump_detail::write_indent(out, indent);
+    out << "location:";
+    out.put(' ');
+    dump_value(out, ctx, value.location);
+    out.put('\n');
     dump_detail::write_indent(out, indent);
     out << "imports:";
     if (value.imports.empty()) {

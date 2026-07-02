@@ -4,7 +4,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-from struct_gen.model import Choice, Enum, Module, Node, ParsedDefinitionFile
+from struct_gen.model import Choice, Enum, Field, Module, Node, ParsedDefinitionFile, Trait
 from struct_gen.parser import parse_definition_file
 
 
@@ -30,23 +30,42 @@ def generate_cpp(parsed: ParsedDefinitionFile, header_name: str) -> GeneratedCpp
     """Generate a C++ header and source for a parsed definition file."""
     module = parsed.module
     declarations = _declarations_by_name(module)
+    resolve_node_fields(module, declarations)
     mappings = _mappings_by_name(parsed)
     enums = tuple(item for item in module.definitions if isinstance(item, Enum))
+    traits = tuple(item for item in module.definitions if isinstance(item, Trait))
     nodes = tuple(item for item in module.definitions if isinstance(item, Node))
+    struct_types = tuple(
+        item for item in module.definitions if isinstance(item, (Trait, Node))
+    )
     choices = _order_choices(module, declarations)
 
     body: list[str] = []
     body.extend(_render_enum(item) for item in enums)
     if enums:
         body.append("")
-    body.extend(f"struct {cpp_name(item.name)};" for item in nodes)
-    if nodes:
+    body.extend(f"struct {cpp_name(item.name)};" for item in struct_types)
+    if traits or nodes:
+        body.append("")
+    body.extend(
+        _render_struct(item.name, item.fields, declarations, mappings) for item in traits
+    )
+    if traits:
         body.append("")
     body.extend(_render_choice(item, declarations) for item in choices)
     if choices:
         body.append("")
     ordered_nodes = _order_nodes(nodes, declarations)
-    body.extend(_render_node(item, declarations, mappings) for item in ordered_nodes)
+    body.extend(
+        _render_struct(
+            item.name,
+            item.fields,
+            declarations,
+            mappings,
+            item.traits,
+        )
+        for item in ordered_nodes
+    )
 
     rendered_body = "\n".join(body).rstrip()
     include_spellings = dict.fromkeys(
@@ -82,8 +101,8 @@ def generate_cpp_files(definition_path: Path) -> tuple[Path, Path]:
     return header_path, source_path
 
 
-def _declarations_by_name(module: Module) -> dict[str, Node | Choice | Enum]:
-    result: dict[str, Node | Choice | Enum] = {}
+def _declarations_by_name(module: Module) -> dict[str, Node | Trait | Choice | Enum]:
+    result: dict[str, Node | Trait | Choice | Enum] = {}
     for declaration in module.definitions:
         if declaration.name in result:
             raise GenerationError(f"duplicate definition: {declaration.name}")
@@ -107,7 +126,7 @@ def _render_enum(item: Enum) -> str:
 
 def _render_choice(
     item: Choice,
-    declarations: dict[str, Node | Choice | Enum],
+    declarations: dict[str, Node | Trait | Choice | Enum],
 ) -> str:
     alternatives: list[str] = []
     for name in item.alternatives:
@@ -116,17 +135,21 @@ def _render_choice(
             raise GenerationError(f"unknown choice alternative {name!r} in {item.name}")
         if isinstance(target, Enum):
             raise GenerationError(f"enum {name!r} cannot be a choice alternative")
+        if isinstance(target, Trait):
+            raise GenerationError(f"trait {name!r} cannot be a choice alternative")
         alternatives.append(cpp_name(name))
     return f"using {cpp_name(item.name)} = std::variant<{', '.join(alternatives)}>;"
 
 
-def _render_node(
-    item: Node,
-    declarations: dict[str, Node | Choice | Enum],
+def _render_struct(
+    name: str,
+    fields_to_render: tuple[Field, ...],
+    declarations: dict[str, Node | Trait | Choice | Enum],
     mappings: dict[str, str],
+    traits: tuple[str, ...] = (),
 ) -> str:
     fields: list[str] = []
-    for field in item.fields:
+    for field in fields_to_render:
         pointer_backed = False
         if field.type_name in mappings:
             field_type = mappings[field.type_name]
@@ -139,19 +162,22 @@ def _render_node(
                 pointer_backed = not field.by_value
                 field_type = named_type if field.by_value else f"std::unique_ptr<{named_type}>"
             else:
-                raise GenerationError(f"unknown field type {field.type_name!r} in {item.name}")
+                raise GenerationError(f"unknown field type {field.type_name!r} in {name}")
         if field.multiple:
             field_type = f"std::vector<{field_type}>"
         elif field.optional and not pointer_backed:
             field_type = f"std::optional<{field_type}>"
         fields.append(f"    {field_type} {field.name};")
     members = "\n".join(fields)
-    return f"struct {cpp_name(item.name)} {{\n{members}\n}};"
+    bases = ""
+    if traits:
+        bases = " : " + ", ".join(f"public {cpp_name(trait)}" for trait in traits)
+    return f"struct {cpp_name(name)}{bases} {{\n{members}\n}};"
 
 
 def _order_choices(
     module: Module,
-    declarations: dict[str, Node | Choice | Enum],
+    declarations: dict[str, Node | Trait | Choice | Enum],
 ) -> tuple[Choice, ...]:
     choices = {
         item.name: item for item in module.definitions if isinstance(item, Choice)
@@ -181,7 +207,7 @@ def _order_choices(
 
 def _order_nodes(
     nodes: tuple[Node, ...],
-    declarations: dict[str, Node | Choice | Enum],
+    declarations: dict[str, Node | Trait | Choice | Enum],
 ) -> tuple[Node, ...]:
     ordered: list[Node] = []
     visiting: set[str] = set()
@@ -222,3 +248,41 @@ def _order_nodes(
     for node in nodes:
         visit(node)
     return tuple(ordered)
+
+
+def resolve_node_fields(
+    module: Module,
+    declarations: dict[str, Node | Trait | Choice | Enum] | None = None,
+) -> dict[str, tuple[Field, ...]]:
+    """Validate trait applications and flatten inherited fields for each node."""
+    known = declarations if declarations is not None else _declarations_by_name(module)
+    traits = {item.name: item for item in module.definitions if isinstance(item, Trait)}
+
+    for trait in traits.values():
+        _reject_duplicate_fields(trait.name, trait.fields)
+
+    result: dict[str, tuple[Field, ...]] = {}
+    for node in (item for item in module.definitions if isinstance(item, Node)):
+        if len(set(node.traits)) != len(node.traits):
+            raise GenerationError(f"duplicate trait on {node.name}")
+        fields: list[Field] = []
+        for trait_name in node.traits:
+            target = known.get(trait_name)
+            if target is None:
+                raise GenerationError(f"unknown trait {trait_name!r} on {node.name}")
+            if not isinstance(target, Trait):
+                raise GenerationError(f"{trait_name!r} on {node.name} is not a trait")
+            fields.extend(target.fields)
+        fields.extend(node.fields)
+        flattened = tuple(fields)
+        _reject_duplicate_fields(node.name, flattened)
+        result[node.name] = flattened
+    return result
+
+
+def _reject_duplicate_fields(owner: str, fields: tuple[Field, ...]) -> None:
+    seen: set[str] = set()
+    for field in fields:
+        if field.name in seen:
+            raise GenerationError(f"duplicate field {field.name!r} in {owner}")
+        seen.add(field.name)

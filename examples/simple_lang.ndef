@@ -1,5 +1,12 @@
 module expressions
 
+trait Location
+    location: source_range
+end
+
+trait Attributes
+end
+
 node BaseVar
     name: identifier
     symbol_ref: symbol
@@ -147,31 +154,31 @@ node FunctionSignature
     parameter_types: *identifier
 end
 
-node FunctionHead
+node FunctionHead with Location
     name: identifier
     signature: value FunctionSignature
 end
 
-node FunctionDefinition
+node FunctionDefinition with Attributes
     head: value FunctionHead
     code: *Expr
     // TODO: function scope
 end
 
-node ImportDefinition
+node ImportDefinition with Location
     ns_name: identifier
     function_head: value FunctionHead
     alias: ?identifier
 end
 
-node GlobalDefinition
+node GlobalDefinition with Location
     name: identifier
     assigned_type: type
     symbol_ref: symbol
     init_value: number
 end
 
-node Module
+node Module with Location
     imports: *ImportDefinition
     globals: *GlobalDefinition
     functions: *FunctionDefinition

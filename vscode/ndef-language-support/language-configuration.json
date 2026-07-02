@@ -4,12 +4,12 @@
   },
   "folding": {
     "markers": {
-      "start": "^\\s*(?:node|choice|enum)\\b",
+      "start": "^\\s*(?:node|trait|choice|enum)\\b",
       "end": "^\\s*end\\b"
     }
   },
   "indentationRules": {
-    "increaseIndentPattern": "^\\s*(?:node|choice|enum)\\b.*$",
+    "increaseIndentPattern": "^\\s*(?:node|trait|choice|enum)\\b.*$",
     "decreaseIndentPattern": "^\\s*end\\b.*$"
   }
 }
