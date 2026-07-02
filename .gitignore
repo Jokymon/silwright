@@ -35,3 +35,6 @@ Sessionx.vim
 
 # Generated C++ output
 generated/
+
+# Generate VSIX packages
+vscode/**/*.vsix
