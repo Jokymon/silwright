@@ -51,7 +51,7 @@ node FieldInitialisation
 end
 
 node StoreRecordExpression
-    // target: lir_place
+    target: value Place
     initialisations: *value FieldInitialisation
     stored_type: type
 end
