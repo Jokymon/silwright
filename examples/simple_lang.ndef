@@ -1,4 +1,4 @@
-module expressions
+module lir
 
 trait Location
     location: source_range

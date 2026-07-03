@@ -45,6 +45,12 @@ Library users can call `struct_gen.parse_definition_file(path)` for the same com
 behavior. `struct_gen.parse_definitions(text)` and `struct_gen.parse_type_mappings(text)` are
 available when parsing already-loaded content independently.
 
+`struct_gen.analyze(parsed)` performs centralized semantic validation and returns a
+`ValidatedModel` containing resolved declarations, backend mappings, flattened trait fields,
+dependency order, and visitor reachability. The model, dump, and visitor generators all accept
+this validated model; passing raw parsed input remains supported and invokes the same analysis
+boundary automatically.
+
 ## Definition language
 
 One `.ndef` file describes one module. Its required first declaration is `module <name>`;

@@ -5,9 +5,10 @@ from datetime import datetime
 from pathlib import Path
 
 from struct_gen.generated_file import write_generated_file
-from struct_gen.generator import GenerationError, cpp_name, resolve_node_fields
 from struct_gen.model import Choice, Enum, Node, ParsedDefinitionFile, Trait
+from struct_gen.naming import cpp_name
 from struct_gen.parser import parse_definition_file
+from struct_gen.semantic import ValidatedModel, analyze, ensure_validated
 
 
 @dataclass(frozen=True, slots=True)
@@ -19,19 +20,16 @@ class GeneratedVisitorCpp:
 
 
 def generate_visitor_cpp(
-    parsed: ParsedDefinitionFile,
+    model: ParsedDefinitionFile | ValidatedModel,
     model_header_name: str,
     visitor_header_name: str,
 ) -> GeneratedVisitorCpp:
     """Generate mutable traversal support for a parsed module."""
-    declarations = {item.name: item for item in parsed.module.definitions}
-    if len(declarations) != len(parsed.module.definitions):
-        raise GenerationError("duplicate definitions cannot generate a visitor")
-    resolve_node_fields(parsed.module, declarations)
-    if any(cpp_name(item.name) == "visitor" for item in parsed.module.definitions):
-        raise GenerationError("definition name conflicts with generated visitor class")
+    validated = ensure_validated(model)
+    parsed = validated.parsed
+    declarations = validated.declarations
 
-    visitable_names = _visitable_definition_names(parsed, declarations)
+    visitable_names = validated.visitable_names
     choices = tuple(
         item
         for item in parsed.module.definitions
@@ -89,10 +87,13 @@ def generate_visitor_cpp(
 
 
 def generate_visitor_files(
-    definition_path: Path, *, generated_at: datetime | None = None
+    definition_path: Path,
+    *,
+    generated_at: datetime | None = None,
+    validated: ValidatedModel | None = None,
 ) -> tuple[Path, Path]:
     """Parse a definition and write its sibling visitor files."""
-    parsed = parse_definition_file(definition_path)
+    parsed = validated or analyze(parse_definition_file(definition_path))
     stem = definition_path.stem
     header_path = definition_path.with_name(f"{stem}_visitor.hpp")
     source_path = definition_path.with_name(f"{stem}_visitor.cpp")
@@ -153,46 +154,3 @@ def _render_hooks(item: Node) -> str:
     return f'''void visitor::enter({type_name}&) {{}}
 
 void visitor::leave({type_name}&) {{}}'''
-
-
-def _visitable_definition_names(
-    parsed: ParsedDefinitionFile,
-    declarations: dict[str, Node | Trait | Choice | Enum],
-) -> set[str]:
-    """Find definitions that can participate in pointer-backed traversal."""
-    structured = {
-        item.name: item
-        for item in parsed.module.definitions
-        if isinstance(item, (Node, Choice))
-    }
-    referenced: set[str] = set()
-    visitable: set[str] = set()
-
-    for item in parsed.module.definitions:
-        if isinstance(item, Node):
-            for field in item.fields:
-                if field.type_name not in structured:
-                    continue
-                referenced.add(field.type_name)
-                if not field.by_value and not field.transient:
-                    visitable.add(field.type_name)
-        elif isinstance(item, Choice):
-            referenced.update(
-                alternative for alternative in item.alternatives if alternative in structured
-            )
-
-    # A definition that is not used by another definition remains a public traversal root.
-    visitable.update(structured.keys() - referenced)
-
-    # Dispatching a choice requires visit overloads for every one of its alternatives.
-    pending = list(visitable)
-    while pending:
-        name = pending.pop()
-        item = declarations[name]
-        if not isinstance(item, Choice):
-            continue
-        for alternative in item.alternatives:
-            if alternative in structured and alternative not in visitable:
-                visitable.add(alternative)
-                pending.append(alternative)
-    return visitable

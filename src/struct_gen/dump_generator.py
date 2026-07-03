@@ -5,9 +5,10 @@ from datetime import datetime
 from pathlib import Path
 
 from struct_gen.generated_file import write_generated_file
-from struct_gen.generator import GenerationError, cpp_name, resolve_node_fields
 from struct_gen.model import Choice, Enum, Field, Node, ParsedDefinitionFile, Trait
+from struct_gen.naming import cpp_name
 from struct_gen.parser import parse_definition_file
+from struct_gen.semantic import ValidatedModel, analyze, ensure_validated
 
 
 @dataclass(frozen=True, slots=True)
@@ -20,20 +21,20 @@ class GeneratedDumpCpp:
 
 
 def generate_dump_cpp(
-    parsed: ParsedDefinitionFile,
+    model: ParsedDefinitionFile | ValidatedModel,
     model_header_name: str,
     dump_header_name: str,
     implementation_name: str,
 ) -> GeneratedDumpCpp:
     """Generate templated YAML-like dump support for a parsed module."""
-    declarations = {item.name: item for item in parsed.module.definitions}
-    if len(declarations) != len(parsed.module.definitions):
-        raise GenerationError("duplicate definitions cannot generate dump functions")
+    validated = ensure_validated(model)
+    parsed = validated.parsed
+    declarations = validated.declarations
 
     enums = tuple(item for item in parsed.module.definitions if isinstance(item, Enum))
     choices = tuple(item for item in parsed.module.definitions if isinstance(item, Choice))
     nodes = tuple(item for item in parsed.module.definitions if isinstance(item, Node))
-    node_fields = resolve_node_fields(parsed.module, declarations)
+    node_fields = validated.node_fields
     namespace = parsed.module.name
 
     public_declarations = [
@@ -93,10 +94,13 @@ def generate_dump_cpp(
 
 
 def generate_dump_files(
-    definition_path: Path, *, generated_at: datetime | None = None
+    definition_path: Path,
+    *,
+    generated_at: datetime | None = None,
+    validated: ValidatedModel | None = None,
 ) -> tuple[Path, Path, Path]:
     """Parse a definition and write its sibling dumper files."""
-    parsed = parse_definition_file(definition_path)
+    parsed = validated or analyze(parse_definition_file(definition_path))
     stem = definition_path.stem
     header_path = definition_path.with_name(f"{stem}_dump.hpp")
     implementation_path = definition_path.with_name(f"{stem}_dump.ipp")
