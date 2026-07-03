@@ -2,8 +2,10 @@
 
 import re
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 
+from struct_gen.generated_file import write_generated_file
 from struct_gen.model import Choice, Enum, Field, Module, Node, ParsedDefinitionFile, Trait
 from struct_gen.parser import parse_definition_file
 
@@ -90,14 +92,16 @@ def generate_cpp(parsed: ParsedDefinitionFile, header_name: str) -> GeneratedCpp
     return GeneratedCpp(header=header, source=source)
 
 
-def generate_cpp_files(definition_path: Path) -> tuple[Path, Path]:
+def generate_cpp_files(
+    definition_path: Path, *, generated_at: datetime | None = None
+) -> tuple[Path, Path]:
     """Parse a definition and write sibling .hpp and .cpp files."""
     parsed = parse_definition_file(definition_path)
     header_path = definition_path.with_suffix(".hpp")
     source_path = definition_path.with_suffix(".cpp")
     generated = generate_cpp(parsed, header_path.name)
-    header_path.write_text(generated.header, encoding="utf-8", newline="\n")
-    source_path.write_text(generated.source, encoding="utf-8", newline="\n")
+    write_generated_file(header_path, generated.header, definition_path, generated_at)
+    write_generated_file(source_path, generated.source, definition_path, generated_at)
     return header_path, source_path
 
 

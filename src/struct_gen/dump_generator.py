@@ -1,8 +1,10 @@
 """Generate YAML-like C++ dump functions for node definitions."""
 
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 
+from struct_gen.generated_file import write_generated_file
 from struct_gen.generator import GenerationError, cpp_name, resolve_node_fields
 from struct_gen.model import Choice, Enum, Field, Node, ParsedDefinitionFile, Trait
 from struct_gen.parser import parse_definition_file
@@ -90,7 +92,9 @@ def generate_dump_cpp(
     return GeneratedDumpCpp(header=header, implementation=implementation, source=source)
 
 
-def generate_dump_files(definition_path: Path) -> tuple[Path, Path, Path]:
+def generate_dump_files(
+    definition_path: Path, *, generated_at: datetime | None = None
+) -> tuple[Path, Path, Path]:
     """Parse a definition and write its sibling dumper files."""
     parsed = parse_definition_file(definition_path)
     stem = definition_path.stem
@@ -103,9 +107,11 @@ def generate_dump_files(definition_path: Path) -> tuple[Path, Path, Path]:
         header_path.name,
         implementation_path.name,
     )
-    header_path.write_text(generated.header, encoding="utf-8", newline="\n")
-    implementation_path.write_text(generated.implementation, encoding="utf-8", newline="\n")
-    source_path.write_text(generated.source, encoding="utf-8", newline="\n")
+    write_generated_file(header_path, generated.header, definition_path, generated_at)
+    write_generated_file(
+        implementation_path, generated.implementation, definition_path, generated_at
+    )
+    write_generated_file(source_path, generated.source, definition_path, generated_at)
     return header_path, implementation_path, source_path
 
 

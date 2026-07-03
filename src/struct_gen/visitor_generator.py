@@ -1,8 +1,10 @@
 """Generate mutable tree visitor classes for node definitions."""
 
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 
+from struct_gen.generated_file import write_generated_file
 from struct_gen.generator import GenerationError, cpp_name, resolve_node_fields
 from struct_gen.model import Choice, Enum, Node, ParsedDefinitionFile, Trait
 from struct_gen.parser import parse_definition_file
@@ -86,7 +88,9 @@ def generate_visitor_cpp(
     return GeneratedVisitorCpp(header=header, source=source)
 
 
-def generate_visitor_files(definition_path: Path) -> tuple[Path, Path]:
+def generate_visitor_files(
+    definition_path: Path, *, generated_at: datetime | None = None
+) -> tuple[Path, Path]:
     """Parse a definition and write its sibling visitor files."""
     parsed = parse_definition_file(definition_path)
     stem = definition_path.stem
@@ -97,8 +101,8 @@ def generate_visitor_files(definition_path: Path) -> tuple[Path, Path]:
         definition_path.with_suffix(".hpp").name,
         header_path.name,
     )
-    header_path.write_text(generated.header, encoding="utf-8", newline="\n")
-    source_path.write_text(generated.source, encoding="utf-8", newline="\n")
+    write_generated_file(header_path, generated.header, definition_path, generated_at)
+    write_generated_file(source_path, generated.source, definition_path, generated_at)
     return header_path, source_path
 
 

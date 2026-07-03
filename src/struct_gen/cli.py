@@ -2,6 +2,7 @@
 
 import argparse
 from collections.abc import Sequence
+from datetime import UTC, datetime
 from pathlib import Path
 
 from struct_gen.dump_generator import generate_dump_files
@@ -17,9 +18,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     definition: Path = args.definition
     if definition.suffix != ".ndef":
         parser.error("definition file must use the .ndef suffix")
-    header, source = generate_cpp_files(definition)
-    dump_header, dump_implementation, dump_source = generate_dump_files(definition)
-    visitor_header, visitor_source = generate_visitor_files(definition)
+    generated_at = datetime.now(UTC)
+    header, source = generate_cpp_files(definition, generated_at=generated_at)
+    dump_header, dump_implementation, dump_source = generate_dump_files(
+        definition, generated_at=generated_at
+    )
+    visitor_header, visitor_source = generate_visitor_files(
+        definition, generated_at=generated_at
+    )
     generated = (
         header,
         source,
