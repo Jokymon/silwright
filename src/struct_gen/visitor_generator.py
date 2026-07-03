@@ -120,7 +120,7 @@ def _render_node_visit(
     statements = ["    enter(value);"]
     for field in item.fields:
         target = declarations.get(field.type_name)
-        if field.by_value or not isinstance(target, (Node, Choice)):
+        if field.by_value or field.transient or not isinstance(target, (Node, Choice)):
             continue
         access = f"value.{field.name}"
         if field.multiple:
@@ -174,7 +174,7 @@ def _visitable_definition_names(
                 if field.type_name not in structured:
                     continue
                 referenced.add(field.type_name)
-                if not field.by_value:
+                if not field.by_value and not field.transient:
                     visitable.add(field.type_name)
         elif isinstance(item, Choice):
             referenced.update(

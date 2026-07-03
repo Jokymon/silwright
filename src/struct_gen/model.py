@@ -12,6 +12,7 @@ class Field:
     multiple: bool = False
     by_value: bool = False
     optional: bool = False
+    transient: bool = False
 
 
 @dataclass(frozen=True, slots=True)

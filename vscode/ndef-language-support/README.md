@@ -5,7 +5,7 @@ Basic Visual Studio Code language support for struct-gen `.ndef` files.
 ## Features
 
 - TextMate syntax highlighting for `module`, `node`, `trait`, `choice`, `enum`, `end`, `value`,
-  and `with`
+  `transient`, and `with`
 - Highlighting for `*` and `|` operators and `//` line comments
 - Declaration-name and field-name highlighting
 - Folding and automatic indentation for `node`, `trait`, `choice`, and `enum` blocks

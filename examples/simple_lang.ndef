@@ -163,7 +163,7 @@ end
 node FunctionDefinition with Attributes
     head: value FunctionHead
     code: *Expr
-    // TODO: function scope
+    function_scope: transient scope
 end
 
 node ImportDefinition with Location

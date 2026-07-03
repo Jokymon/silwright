@@ -238,6 +238,25 @@ end
     )
 
 
+def test_transient_field_modifier_is_parsed() -> None:
+    source = """\
+module example
+node FunctionDefinition
+    function_scope: transient scope
+end
+"""
+
+    assert parse_definitions(source) == Module(
+        "example",
+        (
+            Node(
+                "FunctionDefinition",
+                (Field("function_scope", "scope", transient=True),),
+            ),
+        ),
+    )
+
+
 def test_comments_and_blank_lines_between_declarations_are_ignored() -> None:
     source = """\
 // Module comment

@@ -25,7 +25,7 @@ _NDEF_GRAMMAR = r"""
     node_def: "node" NAME trait_list? _NL+ field* "end" _NL+
     trait_def: "trait" NAME _NL+ field* "end" _NL+
     trait_list: "with" NAME ("," NAME)*
-    field: NAME ":" (STAR | OPTIONAL)? VALUE? NAME _NL+
+    field: NAME ":" (STAR | OPTIONAL)? VALUE? TRANSIENT? NAME _NL+
     choice_def: "choice" NAME _NL+ choice_option_list _NL+ "end" _NL+
     enum_def: "enum" NAME _NL+ flexible_option_list _NL+ "end" _NL+
     choice_option_list: flexible_option_list
@@ -35,6 +35,7 @@ _NDEF_GRAMMAR = r"""
     STAR: "*"
     OPTIONAL: "?"
     VALUE.2: "value"
+    TRANSIENT.2: "transient"
     _CHOICE_SEPARATOR.2: /\|[ \t]*(?:\r?\n[ \t]*)?|\r?\n[ \t]*\|[ \t]*(?:\r?\n[ \t]*)?/
     _NL: /\r?\n/
     %import common.WS_INLINE
@@ -80,6 +81,7 @@ class _NodeTransformer(Transformer[Token, object]):
             multiple="STAR" in modifiers,
             by_value="VALUE" in modifiers,
             optional="OPTIONAL" in modifiers,
+            transient="TRANSIENT" in modifiers,
         )
 
     def trait_list(self, *names: Token) -> tuple[str, ...]:

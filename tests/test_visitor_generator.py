@@ -27,6 +27,7 @@ def _module() -> ParsedDefinitionFile:
                         Field("embedded", "Leaf", by_value=True),
                         Field("metadata", "Metadata", by_value=True),
                         Field("projection", "PlaceElem", by_value=True),
+                        Field("tooling_child", "ToolingNode", transient=True),
                         Field("scalar", "identifier"),
                     ),
                 ),
@@ -34,6 +35,7 @@ def _module() -> ParsedDefinitionFile:
                 Node("Deref"),
                 Node("Field"),
                 Choice("PlaceElem", ("Deref", "Field")),
+                Node("ToolingNode"),
             ),
         ),
         (TypeMapping("identifier", "std::string"),),
@@ -54,6 +56,7 @@ def test_visitor_header_exposes_mutable_visits_and_hooks() -> None:
     assert "place_elem&" not in header
     assert "deref&" not in header
     assert "field&" not in header
+    assert "tooling_node&" not in header
 
 
 def test_visitor_source_dispatches_choices_and_traverses_pointer_children() -> None:
@@ -68,6 +71,7 @@ def test_visitor_source_dispatches_choices_and_traverses_pointer_children() -> N
     assert "value.embedded" not in source
     assert "value.metadata" not in source
     assert "value.projection" not in source
+    assert "value.tooling_child" not in source
     assert "value.scalar" not in source
     branch_visit = source[source.index("void visitor::visit(branch& value)") :]
     assert branch_visit.index("enter(value);") < branch_visit.index("visit(*value.single);")

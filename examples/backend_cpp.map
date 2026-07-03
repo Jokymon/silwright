@@ -1,6 +1,7 @@
 @include <cstddef>
 @include <cstdint>
 @include "symbol.hpp"
+@include "scope.hpp"
 
 identifier: std::string
 number: long long
@@ -10,3 +11,4 @@ symbol: symbol_id
 character: std::uint32_t
 index: std::size_t
 source_range: source_range
+scope: std::unique_ptr<scope>

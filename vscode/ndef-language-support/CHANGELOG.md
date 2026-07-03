@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.4.0 - 2026-07-03
+
+- Highlight the `transient` field modifier.
+
 ## 0.3.0 - 2026-07-03
 
 - Add highlighting, folding, indentation, and definition lookup for `trait` declarations.

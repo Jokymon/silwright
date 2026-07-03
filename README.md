@@ -91,6 +91,8 @@ end
 - Prefixing a field type with `value`, as in `head: value FunctionHead`, embeds node or choice
   types directly instead of using `std::unique_ptr`. The modifiers compose as
   `parameters: *value Parameter` for `std::vector<parameter>`.
+- Prefixing a field type with `transient`, as in `function_scope: transient scope`, emits the
+  C++ member but excludes it from structural dump and visitor generation.
 - `choice` declares a sum type. Its alternatives refer to node types or other declared types.
 - Choice alternatives may span lines. The `|` separator may be placed after the preceding
   option or at the start of the following option's line, and these layouts may be mixed within
@@ -155,6 +157,9 @@ This section is maintained as requirements are discovered or changed during deve
 - Traits generate public base structs and do not participate in choices or visitor traversal.
   Trait fields are flattened into node dump output. Unknown traits, duplicate applications,
   and inherited/local field-name collisions are rejected before C++ is emitted.
+- Transient fields hold tooling or later-stage state that belongs on the in-memory node but is
+  not part of its structural representation. They are generated normally but omitted from
+  dump output and visitor child traversal.
 - Repeated fields use `std::vector` around the otherwise generated field type. For example,
   `*identifier` becomes `std::vector<std::string>` and `*Expr` becomes
   `std::vector<std::unique_ptr<expr>>`.

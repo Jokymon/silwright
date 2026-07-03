@@ -252,3 +252,22 @@ def test_traits_cannot_be_choice_alternatives() -> None:
         GenerationError, match="trait 'Location' cannot be a choice alternative"
     ):
         generate_cpp(parsed, "bad.hpp")
+
+
+def test_transient_fields_are_still_generated() -> None:
+    parsed = ParsedDefinitionFile(
+        Module(
+            "example",
+            (
+                Node(
+                    "FunctionDefinition",
+                    (Field("function_scope", "scope", transient=True),),
+                ),
+            ),
+        ),
+        (TypeMapping("scope", "std::unique_ptr<scope>"),),
+    )
+
+    header = generate_cpp(parsed, "example.hpp").header
+
+    assert "std::unique_ptr<scope> function_scope;" in header

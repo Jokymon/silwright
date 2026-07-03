@@ -224,6 +224,8 @@ def _render_node_dump(
         f'    out << "_type: {item.name}\\n";',
     ]
     for field in fields:
+        if field.transient:
+            continue
         lines.extend(_render_field_dump(field, declarations))
     body = "\n".join(lines)
     return f'''template <class Context>

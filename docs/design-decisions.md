@@ -172,3 +172,25 @@ that term has a distinct C++ meaning. `with` reads as capability application wit
 ordinary field composition. The trait can use a natural characteristic name such as `Location`;
 this does not conflict with its lowercase `location` field because type and member names occupy
 different generated contexts.
+
+## Transient tooling fields
+
+Fields that are required by later compiler stages but are not structural node data use the
+`transient` modifier:
+
+```text
+node FunctionDefinition
+    function_scope: transient scope
+end
+```
+
+The field is emitted normally in the C++ struct, while dump generation and visitor traversal
+ignore it. Its representation remains a backend concern; for example, `backend_cpp.map` may
+map `scope` to `std::unique_ptr<scope>` and include the project header defining `scope`.
+
+Alternatives considered were an analysis-data trait, external side tables keyed by node
+identity, handwritten derived wrappers, and generic type-erased attachment storage. Traits
+would still need a non-structural marker, side tables add lifetime and synchronization costs,
+derived wrappers interact poorly with variant values, and generic attachments lose static type
+visibility. `transient` was selected as the smallest general mechanism that keeps tooling state
+strongly typed and directly accessible without treating it as part of structural operations.
