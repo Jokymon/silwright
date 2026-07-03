@@ -4,6 +4,7 @@ import pytest
 
 from struct_gen import (
     Choice,
+    Enum,
     Field,
     Module,
     Node,
@@ -85,6 +86,100 @@ def test_all_generators_accept_one_validated_model() -> None:
                 (TypeMapping("number", "long"), TypeMapping("number", "int")),
             ),
             "duplicate C++ backend mapping: number",
+        ),
+        (
+            ParsedDefinitionFile(Module("bad", (Enum("Op", ("Add", "Add")),)), ()),
+            "duplicate enum entry 'Add' in Op",
+        ),
+        (
+            ParsedDefinitionFile(
+                Module("bad", (Node("Leaf"), Choice("Item", ("Leaf", "Leaf")))), ()
+            ),
+            "duplicate choice alternative 'Leaf' in Item",
+        ),
+        (
+            ParsedDefinitionFile(
+                Module(
+                    "bad",
+                    (
+                        Node(
+                            "Item",
+                            (Field("values", "number", multiple=True, optional=True),),
+                        ),
+                    ),
+                ),
+                (TypeMapping("number", "long"),),
+            ),
+            "field 'values' in Item cannot be multiple and optional",
+        ),
+        (
+            ParsedDefinitionFile(Module("bad-name", (Node("Item"),)), ()),
+            "module generates invalid C++ identifier 'bad-name'",
+        ),
+        (
+            ParsedDefinitionFile(Module("bad", (Node("Class"),)), ()),
+            "definition 'Class' generates reserved C++ keyword 'class'",
+        ),
+        (
+            ParsedDefinitionFile(
+                Module("bad", (Node("HTTPServer"), Node("HttpServer"))), ()
+            ),
+            "C++ name collision: 'HTTPServer' and 'HttpServer' both generate 'http_server'",
+        ),
+        (
+            ParsedDefinitionFile(
+                Module("bad", (Enum("Op", ("Add",)), Node("OpT"))), ()
+            ),
+            "C++ name collision: 'Op' and 'OpT' both generate 'op_t'",
+        ),
+        (
+            ParsedDefinitionFile(
+                Module(
+                    "bad",
+                    (
+                        Node("Child"),
+                        Trait(
+                            "Metadata",
+                            (Field("child", "Child", by_value=True),),
+                        ),
+                    ),
+                ),
+                (),
+            ),
+            "trait field 'child' in Metadata cannot contain a node or choice by value",
+        ),
+        (
+            ParsedDefinitionFile(
+                Module("bad", (Node("Item", traits=("Missing",)),)), ()
+            ),
+            "unknown trait 'Missing' on Item",
+        ),
+        (
+            ParsedDefinitionFile(
+                Module(
+                    "bad",
+                    (Trait("Metadata"), Node("Item", traits=("Metadata", "Metadata"))),
+                ),
+                (),
+            ),
+            "duplicate trait on Item",
+        ),
+        (
+            ParsedDefinitionFile(
+                Module("bad", (Node("Base"), Node("Item", traits=("Base",)))), ()
+            ),
+            "'Base' on Item is not a trait",
+        ),
+        (
+            ParsedDefinitionFile(
+                Module("bad", (Node("Item", (Field("class", "number"),)),)),
+                (TypeMapping("number", "long"),),
+            ),
+            "field 'class' in Item generates reserved C++ keyword 'class'",
+        ),
+        (
+            ParsedDefinitionFile(Module("namespace", (Node("Item"),)), ()),
+            "module generates reserved C++ keyword 'namespace'",
         ),
     ),
 )

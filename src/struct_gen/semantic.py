@@ -1,5 +1,6 @@
 """Central semantic analysis for parsed struct-gen modules."""
 
+import re
 from dataclasses import dataclass
 
 from struct_gen.model import (
@@ -13,6 +14,25 @@ from struct_gen.model import (
     Trait,
 )
 from struct_gen.naming import cpp_name
+
+_CPP_IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_]*\Z")
+_CPP_KEYWORDS = frozenset(
+    {
+        "alignas", "alignof", "and", "and_eq", "asm", "auto", "bitand", "bitor",
+        "bool", "break", "case", "catch", "char", "char8_t", "char16_t", "char32_t",
+        "class", "compl", "concept", "const", "consteval", "constexpr", "constinit",
+        "const_cast", "continue", "co_await", "co_return", "co_yield", "decltype",
+        "default", "delete", "do", "double", "dynamic_cast", "else", "enum", "explicit",
+        "export", "extern", "false", "float", "for", "friend", "goto", "if", "inline",
+        "int", "long", "mutable", "namespace", "new", "noexcept", "not", "not_eq",
+        "nullptr", "operator", "or", "or_eq", "private", "protected", "public", "register",
+        "reinterpret_cast", "requires", "return", "short", "signed", "sizeof", "static",
+        "static_assert", "static_cast", "struct", "switch", "template", "this",
+        "thread_local", "throw", "true", "try", "typedef", "typeid", "typename", "union",
+        "unsigned", "using", "virtual", "void", "volatile", "wchar_t", "while", "xor",
+        "xor_eq",
+    }
+)
 
 
 class SemanticError(ValueError):
@@ -40,11 +60,13 @@ def analyze(parsed: ParsedDefinitionFile) -> ValidatedModel:
     """Validate parsed input and compute all shared generator metadata."""
     declarations = _declarations_by_name(parsed.module)
     mappings = _mappings_by_name(parsed)
+    _validate_member_uniqueness(parsed.module)
+    _validate_modifiers(parsed.module, declarations)
     node_fields = _resolve_node_fields(parsed.module, declarations)
     _validate_field_types(parsed.module, declarations, mappings)
     ordered_choices = _order_choices(parsed.module, declarations)
     ordered_nodes = _order_nodes(parsed.module, declarations)
-    _validate_generated_names(parsed.module)
+    _validate_cpp_names(parsed.module)
     visitable_names = _visitable_definition_names(parsed.module, declarations)
     return ValidatedModel(
         parsed=parsed,
@@ -78,6 +100,45 @@ def _mappings_by_name(parsed: ParsedDefinitionFile) -> dict[str, str]:
             raise SemanticError(f"duplicate C++ backend mapping: {mapping.source_type}")
         result[mapping.source_type] = mapping.cpp_type
     return result
+
+
+def _validate_member_uniqueness(module: Module) -> None:
+    for definition in module.definitions:
+        if isinstance(definition, Enum):
+            _reject_duplicate_names(definition.name, "enum entry", definition.values)
+        elif isinstance(definition, Choice):
+            _reject_duplicate_names(
+                definition.name, "choice alternative", definition.alternatives
+            )
+
+
+def _reject_duplicate_names(owner: str, kind: str, names: tuple[str, ...]) -> None:
+    seen: set[str] = set()
+    for name in names:
+        if name in seen:
+            raise SemanticError(f"duplicate {kind} {name!r} in {owner}")
+        seen.add(name)
+
+
+def _validate_modifiers(
+    module: Module, declarations: dict[str, Definition]
+) -> None:
+    for owner in module.definitions:
+        if not isinstance(owner, (Node, Trait)):
+            continue
+        for field in owner.fields:
+            if field.multiple and field.optional:
+                raise SemanticError(
+                    f"field {field.name!r} in {owner.name} cannot be multiple and optional"
+                )
+            target = declarations.get(field.type_name)
+            if isinstance(owner, Trait) and field.by_value and isinstance(
+                target, (Node, Choice)
+            ):
+                raise SemanticError(
+                    f"trait field {field.name!r} in {owner.name} cannot contain "
+                    "a node or choice by value"
+                )
 
 
 def _resolve_node_fields(
@@ -213,9 +274,42 @@ def _order_nodes(
     return tuple(ordered)
 
 
-def _validate_generated_names(module: Module) -> None:
-    if any(cpp_name(item.name) == "visitor" for item in module.definitions):
+def _validate_cpp_names(module: Module) -> None:
+    _validate_cpp_identifier("module", module.name)
+    generated: dict[str, str] = {}
+    for definition in module.definitions:
+        generated_name = cpp_name(definition.name)
+        if isinstance(definition, Enum):
+            generated_name += "_t"
+        _validate_cpp_identifier(f"definition {definition.name!r}", generated_name)
+        previous = generated.get(generated_name)
+        if previous is not None:
+            raise SemanticError(
+                f"C++ name collision: {previous!r} and {definition.name!r} "
+                f"both generate {generated_name!r}"
+            )
+        generated[generated_name] = definition.name
+
+        if isinstance(definition, (Node, Trait)):
+            for field in definition.fields:
+                _validate_cpp_identifier(
+                    f"field {field.name!r} in {definition.name}", field.name
+                )
+        elif isinstance(definition, Enum):
+            for value in definition.values:
+                _validate_cpp_identifier(
+                    f"enum entry {value!r} in {definition.name}", value
+                )
+
+    if "visitor" in generated:
         raise SemanticError("definition name conflicts with generated visitor class")
+
+
+def _validate_cpp_identifier(subject: str, name: str) -> None:
+    if _CPP_IDENTIFIER.fullmatch(name) is None:
+        raise SemanticError(f"{subject} generates invalid C++ identifier {name!r}")
+    if name in _CPP_KEYWORDS:
+        raise SemanticError(f"{subject} generates reserved C++ keyword {name!r}")
 
 
 def _visitable_definition_names(
