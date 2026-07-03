@@ -5,6 +5,7 @@ trait Location
 end
 
 trait Attributes
+    attributes: *identifier
 end
 
 node BaseVar
