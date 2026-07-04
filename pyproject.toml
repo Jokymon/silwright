@@ -6,11 +6,31 @@ readme = "README.md"
 requires-python = ">=3.14"
 license = "MIT"
 authors = [
-    { name = "Silwright contributors" },
+    { name = "Silvan Wegmann" },
 ]
+maintainers = [
+    { name = "Silvan Wegmann" },
+]
+keywords = ["ast", "code-generation", "cpp", "schema", "tree"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.14",
+    "Software Development :: Code Generators",
+]
+license-files = ["LICENSE"]
 dependencies = [
     "lark>=1.3.1",
 ]
+
+[project.urls]
+Homepage = "https://github.com/Jokymon/silwright"
+Repository = "https://github.com/Jokymon/silwright.git"
+Issues = "https://github.com/Jokymon/silwright/issues"
+Changelog = "https://github.com/Jokymon/silwright/releases"
 
 [project.scripts]
 silwright = "silwright.cli:main"

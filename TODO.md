@@ -1,4 +1,8 @@
-* Better error message in case of a type which isn't available
-* Rename to something more unique
-* Get ready for CheeseShop release
 * Add transformation visitor
+* Add source-aware diagnostics
+* Prepare and publish the first PyPI release
+
+* GitHub:
+  * Contribution doc
+  * Add generation of documentation
+  * Add generation/release of VSCode extension

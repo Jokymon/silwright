@@ -2,7 +2,30 @@
 
 Silwright parses declarative node descriptions and generates C++ data types.
 
-## Setup
+## Installation
+
+Install the command-line tool from PyPI:
+
+```shell
+pip install silwright
+```
+
+Alternatively, run it in an isolated environment without installing it permanently:
+
+```shell
+uvx silwright path/to/module.ndef
+```
+
+Silwright requires Python 3.14 or newer. Generated C++ currently requires C++20; in particular,
+the generated model and dump support use `std::variant` and C++20 constraints.
+
+## Project status
+
+Silwright is beta software. Its current language and C++ generation workflow are usable, but
+the project is still pre-1.0, has limited external production validation, and may make
+compatibility-affecting changes while its contracts are finalized.
+
+## Development setup
 
 Prerequisites:
 
