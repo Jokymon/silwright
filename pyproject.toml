@@ -19,7 +19,7 @@ classifiers = [
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.14",
-    "Software Development :: Code Generators",
+    "Topic :: Software Development :: Code Generators",
 ]
 license-files = ["LICENSE"]
 dependencies = [
