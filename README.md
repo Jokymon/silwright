@@ -1,6 +1,6 @@
 # Silwright
 
-[![Documentation](https://github.com/Jokymon/silwright/actions/workflows/docs.yml/badge.svg)](https://jokymon.github.io/silwright/)
+[![Documentation](https://img.shields.io/badge/docs-GitHub%20Pages-blue?logo=github)](https://jokymon.github.io/silwright/)
 
 Silwright parses declarative node descriptions and generates C++ data types.
 
@@ -88,7 +88,7 @@ uv sync --group docs
 uv run mkdocs serve
 ```
 
-The GitHub Pages workflow publishes the documentation from `main` when its source files
+The GitHub Pages workflow publishes the documentation from `master` when its source files
 change. The built `site/` directory is local output and is not version controlled.
 
 ## Definition language
