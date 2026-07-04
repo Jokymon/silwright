@@ -1,6 +1,7 @@
 # Silwright
 
 [![Documentation](https://img.shields.io/badge/docs-GitHub%20Pages-blue?logo=github)](https://jokymon.github.io/silwright/)
+[![PyPI](https://img.shields.io/pypi/v/silwright)](https://pypi.org/project/silwright/)
 
 Silwright parses declarative node descriptions and generates C++ data types.
 
@@ -90,6 +91,21 @@ uv run mkdocs serve
 
 The GitHub Pages workflow publishes the documentation from `master` when its source files
 change. The built `site/` directory is local output and is not version controlled.
+
+## Releasing
+
+Python package releases use `v<version>` tags and are independent of VS Code extension
+releases. Before creating a release, update the version in `pyproject.toml`, move the relevant
+entries in `CHANGELOG.md` into a matching version section, and commit both changes. Then create
+and push the matching tag; for version 0.1.0 this is:
+
+```shell
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+The release workflow verifies that the tag, project version, and changelog agree before it
+builds and publishes the distributions to PyPI.
 
 ## Definition language
 
@@ -237,4 +253,3 @@ This section is maintained as requirements are discovered or changed during deve
   are deliberately skipped. Definitions referenced exclusively through `value` fields are
   omitted from the visitor API, while unreferenced definitions remain possible entry points.
   Derived visitors can override only the hooks they need.
-

@@ -30,7 +30,7 @@ dependencies = [
 Homepage = "https://github.com/Jokymon/silwright"
 Repository = "https://github.com/Jokymon/silwright.git"
 Issues = "https://github.com/Jokymon/silwright/issues"
-Changelog = "https://github.com/Jokymon/silwright/releases"
+Changelog = "https://github.com/Jokymon/silwright/blob/master/CHANGELOG.md"
 
 [project.scripts]
 silwright = "silwright.cli:main"
