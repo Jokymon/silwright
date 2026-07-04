@@ -238,11 +238,3 @@ This section is maintained as requirements are discovered or changed during deve
   omitted from the visitor API, while unreferenced definitions remain possible entry points.
   Derived visitors can override only the hooks they need.
 
-## Version control
-
-The repository is initialized locally. To create the first commit:
-
-```shell
-git add .
-git commit -m "Initial project scaffold"
-```
