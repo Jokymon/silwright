@@ -27,3 +27,16 @@ To package it after installing `@vscode/vsce`:
 ```console
 vsce package
 ```
+
+## Releasing
+
+The extension has an independent release cycle. Update the `version` in `package.json` and the
+changelog, commit those changes, then create and push a matching `vscode-v<version>` tag:
+
+```console
+git tag vscode-v0.6.0
+git push origin vscode-v0.6.0
+```
+
+The release workflow runs the tests, packages the `.vsix`, and attaches it to a dedicated
+GitHub Release. The workflow rejects a tag when its version does not match `package.json`.

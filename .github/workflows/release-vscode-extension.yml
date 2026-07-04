@@ -1,0 +1,68 @@
+name: Release VS Code extension
+
+on:
+  push:
+    tags:
+      - "vscode-v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Package and release extension
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: vscode/silwright-ndef-language-support
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+
+      - name: Verify tag matches extension version
+        shell: bash
+        run: |
+          extension_version="$(node --print "require('./package.json').version")"
+          expected_tag="vscode-v${extension_version}"
+          if [[ "${GITHUB_REF_NAME}" != "${expected_tag}" ]]; then
+            echo "Tag ${GITHUB_REF_NAME} does not match package version ${extension_version}."
+            echo "Expected tag: ${expected_tag}"
+            exit 1
+          fi
+
+      - name: Run extension tests
+        run: npm test
+
+      - name: Package extension
+        shell: bash
+        run: |
+          mkdir -p "${GITHUB_WORKSPACE}/dist"
+          npx --yes @vscode/vsce@3.9.2 package \
+            --out "${GITHUB_WORKSPACE}/dist/silwright-ndef-language-support-${GITHUB_REF_NAME#vscode-v}.vsix"
+
+      - name: Store workflow artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: silwright-ndef-language-support
+          path: dist/*.vsix
+
+      - name: Create GitHub release
+        working-directory: ${{ github.workspace }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          extension_version="${GITHUB_REF_NAME#vscode-v}"
+          gh release create "${GITHUB_REF_NAME}" \
+            "dist/silwright-ndef-language-support-${extension_version}.vsix" \
+            --verify-tag \
+            --title "Silwright VS Code extension ${extension_version}" \
+            --notes "Silwright NDEF Language Support ${extension_version}." \
+            --latest=false
