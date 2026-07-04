@@ -51,6 +51,9 @@ dependency order, and visitor reachability. The model, dump, and visitor generat
 this validated model; passing raw parsed input remains supported and invokes the same analysis
 boundary automatically.
 
+The complete current syntax and generation contract are documented in
+[`docs/language-reference.md`](docs/language-reference.md).
+
 ## Definition language
 
 One `.ndef` file describes one module. Its required first declaration is `module <name>`;
