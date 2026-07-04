@@ -1,4 +1,4 @@
-from struct_gen import (
+from silwright import (
     Choice,
     Enum,
     Field,

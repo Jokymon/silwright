@@ -1,8 +1,8 @@
 """Parse node descriptions used to generate C++ code."""
 
-from struct_gen.dump_generator import GeneratedDumpCpp, generate_dump_cpp
-from struct_gen.generator import GeneratedCpp, GenerationError, generate_cpp
-from struct_gen.model import (
+from silwright.dump_generator import GeneratedDumpCpp, generate_dump_cpp
+from silwright.generator import GeneratedCpp, GenerationError, generate_cpp
+from silwright.model import (
     Choice,
     CppBackendConfig,
     Enum,
@@ -13,15 +13,15 @@ from struct_gen.model import (
     Trait,
     TypeMapping,
 )
-from struct_gen.naming import cpp_name
-from struct_gen.parser import (
+from silwright.naming import cpp_name
+from silwright.parser import (
     parse_cpp_backend_config,
     parse_definition_file,
     parse_definitions,
     parse_type_mappings,
 )
-from struct_gen.semantic import SemanticError, ValidatedModel, analyze
-from struct_gen.visitor_generator import GeneratedVisitorCpp, generate_visitor_cpp
+from silwright.semantic import SemanticError, ValidatedModel, analyze
+from silwright.visitor_generator import GeneratedVisitorCpp, generate_visitor_cpp
 
 __all__ = [
     "Choice",

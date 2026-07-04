@@ -4,7 +4,7 @@ from pathlib import Path
 
 from lark import Lark, Token, Transformer, v_args
 
-from struct_gen.model import (
+from silwright.model import (
     Choice,
     CppBackendConfig,
     Definition,

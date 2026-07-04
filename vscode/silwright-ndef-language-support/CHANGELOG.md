@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.5.0 - 2026-07-04
+
+- Rename the extension and project branding from struct-gen to Silwright.
+
 ## 0.4.0 - 2026-07-03
 
 - Highlight the `transient` field modifier.

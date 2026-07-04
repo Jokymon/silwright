@@ -1,6 +1,6 @@
-# struct-gen
+# Silwright
 
-`struct-gen` parses declarative node descriptions and generates C++ data types.
+Silwright parses declarative node descriptions and generates C++ data types.
 
 ## Setup
 
@@ -33,7 +33,7 @@ The package uses a `src` layout. Runtime dependencies and development tools are 
 Generate C++ from the example node definition:
 
 ```shell
-uv run struct-gen examples/simple_lang.ndef
+uv run silwright examples/simple_lang.ndef
 ```
 
 The command automatically loads the required `backend_cpp.map` from the same directory, then
@@ -41,11 +41,11 @@ writes the model `.hpp`/`.cpp`, dump `_dump.hpp`/`_dump.ipp`/`_dump.cpp`, and vi
 `_visitor.hpp`/`_visitor.cpp` files beside `simple_lang.ndef`. Existing generated output files
 are replaced. Syntax errors include their source location.
 
-Library users can call `struct_gen.parse_definition_file(path)` for the same combined lookup
-behavior. `struct_gen.parse_definitions(text)` and `struct_gen.parse_type_mappings(text)` are
+Library users can call `silwright.parse_definition_file(path)` for the same combined lookup
+behavior. `silwright.parse_definitions(text)` and `silwright.parse_type_mappings(text)` are
 available when parsing already-loaded content independently.
 
-`struct_gen.analyze(parsed)` performs centralized semantic validation and returns a
+`silwright.analyze(parsed)` performs centralized semantic validation and returns a
 `ValidatedModel` containing resolved declarations, backend mappings, flattened trait fields,
 dependency order, and visitor reachability. The model, dump, and visitor generators all accept
 this validated model; passing raw parsed input remains supported and invokes the same analysis
@@ -127,7 +127,7 @@ index: std::size_t
 type: project::type_id
 ```
 
-Each mapping has a struct-gen type on the left and its C++ type spelling on the right.
+Each mapping has a Silwright type on the left and its C++ type spelling on the right.
 `@include` accepts either a system header in `<...>` or a project header in `"..."`; these
 headers are deduplicated and emitted into the generated model header. For a definition such
 as `simple_lang.ndef`, the parser always looks for `backend_cpp.map` in the same directory.

@@ -4,11 +4,11 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
-from struct_gen.generated_file import write_generated_file
-from struct_gen.model import Choice, Enum, Field, Node, ParsedDefinitionFile, Trait
-from struct_gen.naming import cpp_name
-from struct_gen.parser import parse_definition_file
-from struct_gen.semantic import SemanticError, ValidatedModel, analyze, ensure_validated
+from silwright.generated_file import write_generated_file
+from silwright.model import Choice, Enum, Field, Node, ParsedDefinitionFile, Trait
+from silwright.naming import cpp_name
+from silwright.parser import parse_definition_file
+from silwright.semantic import SemanticError, ValidatedModel, analyze, ensure_validated
 
 GenerationError = SemanticError
 

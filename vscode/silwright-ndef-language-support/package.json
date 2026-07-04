@@ -1,8 +1,8 @@
 {
-  "name": "ndef-language-support",
-  "displayName": "NDEF Language Support",
-  "description": "Syntax highlighting and editor support for struct-gen node definition files.",
-  "version": "0.4.0",
+  "name": "silwright-ndef-language-support",
+  "displayName": "Silwright NDEF Language Support",
+  "description": "Syntax highlighting and editor support for Silwright node definition files.",
+  "version": "0.5.0",
   "publisher": "silvan-wegmann",
   "license": "MIT",
   "engines": {
@@ -21,7 +21,7 @@
   ],
   "keywords": [
     "ndef",
-    "struct-gen",
+    "silwright",
     "language support"
   ],
   "contributes": {

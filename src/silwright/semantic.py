@@ -1,9 +1,9 @@
-"""Central semantic analysis for parsed struct-gen modules."""
+"""Central semantic analysis for parsed Silwright modules."""
 
 import re
 from dataclasses import dataclass
 
-from struct_gen.model import (
+from silwright.model import (
     Choice,
     Definition,
     Enum,
@@ -13,7 +13,7 @@ from struct_gen.model import (
     ParsedDefinitionFile,
     Trait,
 )
-from struct_gen.naming import cpp_name
+from silwright.naming import cpp_name
 
 _CPP_IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_]*\Z")
 _CPP_KEYWORDS = frozenset(

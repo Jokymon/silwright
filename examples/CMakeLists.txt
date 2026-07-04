@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(struct_gen_simple_lang_example LANGUAGES CXX)
+project(silwright_simple_lang_example LANGUAGES CXX)
 
 add_executable(
     simple_lang_example

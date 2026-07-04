@@ -1,11 +1,11 @@
-"""Syntax model for struct-gen definition files."""
+"""Syntax model for Silwright definition files."""
 
 from dataclasses import dataclass
 
 
 @dataclass(frozen=True, slots=True)
 class Field:
-    """A named field with a struct-gen type reference."""
+    """A named field with a Silwright type reference."""
 
     name: str
     type_name: str
@@ -61,7 +61,7 @@ class Module:
 
 @dataclass(frozen=True, slots=True)
 class TypeMapping:
-    """A mapping from a built-in struct-gen type to a C++ type."""
+    """A mapping from a Silwright type to a C++ type."""
 
     source_type: str
     cpp_type: str

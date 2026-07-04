@@ -1,6 +1,6 @@
-# NDEF Language Support
+# Silwright NDEF Language Support
 
-Basic Visual Studio Code language support for struct-gen `.ndef` files.
+Basic Visual Studio Code language support for Silwright `.ndef` files.
 
 ## Features
 

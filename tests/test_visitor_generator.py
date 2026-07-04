@@ -1,6 +1,6 @@
 import pytest
 
-from struct_gen import (
+from silwright import (
     Choice,
     Field,
     GenerationError,

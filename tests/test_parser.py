@@ -1,7 +1,7 @@
 import pytest
 from lark.exceptions import UnexpectedInput
 
-from struct_gen import (
+from silwright import (
     Choice,
     CppBackendConfig,
     Enum,
