@@ -1,0 +1,18 @@
+site_name: Silwright
+site_description: Generate C++ tree data structures from declarative node descriptions.
+site_url: https://jokymon.github.io/silwright/
+repo_url: https://github.com/Jokymon/silwright
+repo_name: Jokymon/silwright
+
+docs_dir: docs
+site_dir: site
+exclude_docs: |
+  production-readiness.md
+
+theme:
+  name: mkdocs
+
+nav:
+  - Home: index.md
+  - Language reference: language-reference.md
+  - Design decisions: design-decisions.md

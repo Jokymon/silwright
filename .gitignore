@@ -12,6 +12,7 @@ __pycache__/
 # Build and packaging output
 build/
 dist/
+site/
 *.egg-info/
 
 # Coverage output

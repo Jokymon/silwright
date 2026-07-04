@@ -6,3 +6,4 @@
   * Contribution doc
   * Add generation of documentation
   * Add generation/release of VSCode extension
+  * Add project badges

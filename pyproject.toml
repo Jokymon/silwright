@@ -45,6 +45,9 @@ dev = [
     "pytest>=9.0.0",
     "ruff>=0.14.0",
 ]
+docs = [
+    "mkdocs>=1.6.1,<2",
+]
 
 [tool.pytest.ini_options]
 addopts = "-ra"

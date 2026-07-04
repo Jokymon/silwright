@@ -77,6 +77,18 @@ boundary automatically.
 The complete current syntax and generation contract are documented in
 [`docs/language-reference.md`](docs/language-reference.md).
 
+## Documentation
+
+The project documentation can be previewed locally with:
+
+```shell
+uv sync --group docs
+uv run mkdocs serve
+```
+
+The GitHub Pages workflow publishes the documentation from `main` when its source files
+change. The built `site/` directory is local output and is not version controlled.
+
 ## Definition language
 
 One `.ndef` file describes one module. Its required first declaration is `module <name>`;
