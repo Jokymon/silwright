@@ -1,5 +1,7 @@
 # Silwright
 
+[![Documentation](https://github.com/Jokymon/silwright/actions/workflows/docs.yml/badge.svg)](https://jokymon.github.io/silwright/)
+
 Silwright parses declarative node descriptions and generates C++ data types.
 
 ## Installation
