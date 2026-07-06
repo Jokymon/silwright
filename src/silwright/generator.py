@@ -32,40 +32,41 @@ def generate_cpp(
     mappings = validated.mappings
     enums = tuple(item for item in module.definitions if isinstance(item, Enum))
     traits = tuple(item for item in module.definitions if isinstance(item, Trait))
-    nodes = tuple(item for item in module.definitions if isinstance(item, Node))
     struct_types = tuple(
         item for item in module.definitions if isinstance(item, (Trait, Node))
     )
     choices = validated.ordered_choices
 
-    body: list[str] = []
-    body.extend(_render_enum(item) for item in enums)
+    sections: list[str] = []
     if enums:
-        body.append("")
-    body.extend(f"struct {cpp_name(item.name)};" for item in struct_types)
-    if traits or nodes:
-        body.append("")
-    body.extend(
-        _render_struct(item.name, item.fields, declarations, mappings) for item in traits
-    )
+        sections.append("\n\n".join(_render_enum(item) for item in enums))
+    if struct_types:
+        sections.append("\n".join(f"struct {cpp_name(item.name)};" for item in struct_types))
     if traits:
-        body.append("")
-    body.extend(_render_choice(item, declarations) for item in choices)
-    if choices:
-        body.append("")
-    ordered_nodes = validated.ordered_nodes
-    body.extend(
-        _render_struct(
-            item.name,
-            item.fields,
-            declarations,
-            mappings,
-            item.traits,
+        sections.append(
+            "\n\n".join(
+                _render_struct(item.name, item.fields, declarations, mappings)
+                for item in traits
+            )
         )
-        for item in ordered_nodes
-    )
+    if choices:
+        sections.append("\n\n".join(_render_choice(item, declarations) for item in choices))
+    ordered_nodes = validated.ordered_nodes
+    if ordered_nodes:
+        sections.append(
+            "\n\n".join(
+                _render_struct(
+                    item.name,
+                    item.fields,
+                    declarations,
+                    mappings,
+                    item.traits,
+                )
+                for item in ordered_nodes
+            )
+        )
 
-    rendered_body = "\n".join(body).rstrip()
+    rendered_body = "\n\n".join(sections)
     include_spellings = dict.fromkeys(
         (
             "<memory>",

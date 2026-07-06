@@ -72,6 +72,17 @@ def test_generate_cpp() -> None:
     assert generated.source == '#include "expressions.hpp"\n'
 
 
+def test_generate_cpp_separates_struct_definitions_with_empty_line() -> None:
+    parsed = ParsedDefinitionFile(
+        Module("example", (Node("First"), Node("Second"), Node("Third"))),
+        (),
+    )
+
+    header = generate_cpp(parsed, "example.hpp").header
+
+    assert "struct first {\n\n};\n\nstruct second {\n\n};\n\nstruct third {" in header
+
+
 def test_generate_cpp_emits_deduplicated_backend_includes() -> None:
     parsed = ParsedDefinitionFile(
         Module("example", (Node("Value", (Field("value", "index"),)),)),

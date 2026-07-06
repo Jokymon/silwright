@@ -7,6 +7,10 @@ The project follows [Semantic Versioning](https://semver.org/). Releases are ide
 
 ## [Unreleased]
 
+### Added
+
+- Separate generated C++ struct definitions with an empty line for improved readability.
+
 ## [0.1.3] - 2026-07-04
 
 ### Fixed

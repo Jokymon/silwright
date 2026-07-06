@@ -32,6 +32,7 @@ end
 
 node Number
     value: number
+    assigned_type: type
 end
 
 node CharLiteral
