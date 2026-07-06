@@ -46,6 +46,7 @@ def test_analysis_builds_shared_generator_metadata() -> None:
         Field("child", "Expr"),
     )
     assert tuple(item.name for item in validated.ordered_choices) == ("Expr",)
+    assert validated.repeated_pointer_choices == ()
     assert {"Expr", "Leaf", "Branch"} <= validated.visitable_names
 
 
@@ -131,6 +132,21 @@ def test_all_generators_accept_one_validated_model() -> None:
                 Module("bad", (Enum("Op", ("Add",)), Node("OpT"))), ()
             ),
             "C++ name collision: 'Op' and 'OpT' both generate 'op_t'",
+        ),
+        (
+            ParsedDefinitionFile(
+                Module(
+                    "bad",
+                    (
+                        Node("Leaf"),
+                        Choice("Expr", ("Leaf",)),
+                        Node("ExprList"),
+                        Node("Block", (Field("body", "Expr", multiple=True),)),
+                    ),
+                ),
+                (),
+            ),
+            "generated list alias for 'Expr' conflicts with 'ExprList' as 'expr_list'",
         ),
         (
             ParsedDefinitionFile(

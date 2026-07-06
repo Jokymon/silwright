@@ -48,6 +48,7 @@ class ValidatedModel:
     mappings: dict[str, str]
     node_fields: dict[str, tuple[Field, ...]]
     ordered_choices: tuple[Choice, ...]
+    repeated_pointer_choices: tuple[Choice, ...]
     ordered_nodes: tuple[Node, ...]
     visitable_names: frozenset[str]
 
@@ -65,8 +66,11 @@ def analyze(parsed: ParsedDefinitionFile) -> ValidatedModel:
     node_fields = _resolve_node_fields(parsed.module, declarations)
     _validate_field_types(parsed.module, declarations, mappings)
     ordered_choices = _order_choices(parsed.module, declarations)
+    repeated_pointer_choices = _repeated_pointer_choices(
+        parsed.module, declarations, ordered_choices
+    )
     ordered_nodes = _order_nodes(parsed.module, declarations)
-    _validate_cpp_names(parsed.module)
+    _validate_cpp_names(parsed.module, repeated_pointer_choices)
     visitable_names = _visitable_definition_names(parsed.module, declarations)
     return ValidatedModel(
         parsed=parsed,
@@ -74,6 +78,7 @@ def analyze(parsed: ParsedDefinitionFile) -> ValidatedModel:
         mappings=mappings,
         node_fields=node_fields,
         ordered_choices=ordered_choices,
+        repeated_pointer_choices=repeated_pointer_choices,
         ordered_nodes=ordered_nodes,
         visitable_names=frozenset(visitable_names),
     )
@@ -274,7 +279,26 @@ def _order_nodes(
     return tuple(ordered)
 
 
-def _validate_cpp_names(module: Module) -> None:
+def _repeated_pointer_choices(
+    module: Module,
+    declarations: dict[str, Definition],
+    ordered_choices: tuple[Choice, ...],
+) -> tuple[Choice, ...]:
+    referenced = {
+        field.type_name
+        for definition in module.definitions
+        if isinstance(definition, (Node, Trait))
+        for field in definition.fields
+        if field.multiple
+        and not field.by_value
+        and isinstance(declarations.get(field.type_name), Choice)
+    }
+    return tuple(choice for choice in ordered_choices if choice.name in referenced)
+
+
+def _validate_cpp_names(
+    module: Module, repeated_pointer_choices: tuple[Choice, ...]
+) -> None:
     _validate_cpp_identifier("module", module.name)
     generated: dict[str, str] = {}
     for definition in module.definitions:
@@ -300,6 +324,16 @@ def _validate_cpp_names(module: Module) -> None:
                 _validate_cpp_identifier(
                     f"enum entry {value!r} in {definition.name}", value
                 )
+
+    for choice in repeated_pointer_choices:
+        alias_name = f"{cpp_name(choice.name)}_list"
+        previous = generated.get(alias_name)
+        if previous is not None:
+            raise SemanticError(
+                f"C++ name collision: generated list alias for {choice.name!r} "
+                f"conflicts with {previous!r} as {alias_name!r}"
+            )
+        generated[alias_name] = f"{choice.name} list alias"
 
     if "visitor" in generated:
         raise SemanticError("definition name conflicts with generated visitor class")

@@ -78,6 +78,8 @@ using place_elem = std::variant<deref, field>;
 
 using expr = std::variant<number, char_literal, bool_literal, string_literal, allocate_record_expression, store_record_expression, load_expression, store_expression, if_expression, while_expression, function_call, cast_expression, discard_expression, return_expression, break_statement, unary_expression, binary_expression>;
 
+using expr_list = std::vector<std::unique_ptr<expr>>;
+
 struct base_var {
     std::string name;
     symbol_id symbol_ref;

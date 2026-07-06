@@ -129,6 +129,16 @@ end
 A choice generates a `snake_case` `std::variant` alias. Alternatives must resolve to nodes or
 other choices. Choice aliases are dependency-ordered; cyclic choice aliases are invalid.
 
+When a choice is used by at least one repeated, pointer-backed field such as `code: *Expr`, the
+C++ backend also generates one reusable list alias:
+
+```cpp
+using expr_list = std::vector<std::unique_ptr<expr>>;
+```
+
+Repeated `value` choice fields do not generate this alias because their representation is
+`std::vector<expr>` instead.
+
 ## Enums
 
 ```text

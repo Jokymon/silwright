@@ -10,6 +10,7 @@ The project follows [Semantic Versioning](https://semver.org/). Releases are ide
 ### Added
 
 - Separate generated C++ struct definitions with an empty line for improved readability.
+- Generate reusable `<choice>_list` aliases for choices used by repeated pointer-backed fields.
 
 ## [0.1.3] - 2026-07-04
 

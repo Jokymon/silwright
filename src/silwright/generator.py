@@ -51,6 +51,13 @@ def generate_cpp(
         )
     if choices:
         sections.append("\n\n".join(_render_choice(item, declarations) for item in choices))
+    if validated.repeated_pointer_choices:
+        sections.append(
+            "\n\n".join(
+                _render_choice_list_alias(item)
+                for item in validated.repeated_pointer_choices
+            )
+        )
     ordered_nodes = validated.ordered_nodes
     if ordered_nodes:
         sections.append(
@@ -118,6 +125,11 @@ def _render_choice(
     for name in item.alternatives:
         alternatives.append(cpp_name(name))
     return f"using {cpp_name(item.name)} = std::variant<{', '.join(alternatives)}>;"
+
+
+def _render_choice_list_alias(item: Choice) -> str:
+    name = cpp_name(item.name)
+    return f"using {name}_list = std::vector<std::unique_ptr<{name}>>;"
 
 
 def _render_struct(

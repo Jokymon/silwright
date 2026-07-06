@@ -83,6 +83,51 @@ def test_generate_cpp_separates_struct_definitions_with_empty_line() -> None:
     assert "struct first {\n\n};\n\nstruct second {\n\n};\n\nstruct third {" in header
 
 
+def test_generate_cpp_adds_list_alias_for_repeated_pointer_choice() -> None:
+    parsed = ParsedDefinitionFile(
+        Module(
+            "example",
+            (
+                Node("Leaf"),
+                Choice("Expr", ("Leaf",)),
+                Node(
+                    "Block",
+                    (
+                        Field("body", "Expr", multiple=True),
+                        Field("fallback", "Expr", multiple=True),
+                    ),
+                ),
+            ),
+        ),
+        (),
+    )
+
+    header = generate_cpp(parsed, "example.hpp").header
+
+    assert header.count(
+        "using expr_list = std::vector<std::unique_ptr<expr>>;"
+    ) == 1
+    assert "std::vector<std::unique_ptr<expr>> body;" in header
+
+
+def test_generate_cpp_omits_list_alias_for_repeated_value_choice() -> None:
+    parsed = ParsedDefinitionFile(
+        Module(
+            "example",
+            (
+                Node("Leaf"),
+                Choice("Expr", ("Leaf",)),
+                Node("Block", (Field("body", "Expr", multiple=True, by_value=True),)),
+            ),
+        ),
+        (),
+    )
+
+    header = generate_cpp(parsed, "example.hpp").header
+
+    assert "using expr_list" not in header
+
+
 def test_generate_cpp_emits_deduplicated_backend_includes() -> None:
     parsed = ParsedDefinitionFile(
         Module("example", (Node("Value", (Field("value", "index"),)),)),
