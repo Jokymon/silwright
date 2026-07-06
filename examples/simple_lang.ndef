@@ -151,14 +151,9 @@ end
 
 // Elements beyond expressions
 
-node FunctionSignature
-    return_type: identifier
-    parameter_types: *identifier
-end
-
 node FunctionHead with Location
     name: identifier
-    signature: value FunctionSignature
+    signature: function_signature
 end
 
 node FunctionDefinition with Attributes

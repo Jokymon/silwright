@@ -22,6 +22,17 @@ struct source_range {
     source_position end;
 };
 
+struct function_parameter
+{
+    std::string name;
+};
+
+struct function_signature
+{
+    std::vector<function_parameter> parameters;
+    type_id function_type;
+};
+
 inline std::ostream& operator<<(std::ostream& out, const source_range& value) {
     return out << value.start.line << ".." << value.end.line;
 }

@@ -12,8 +12,8 @@ struct dump_context {
 };
 
 template <class Node>
-std::unique_ptr<expressions::expr> make_expression(Node node) {
-    return std::make_unique<expressions::expr>(std::move(node));
+std::unique_ptr<lir::expr> make_expression(Node node) {
+    return std::make_unique<lir::expr>(std::move(node));
 }
 
 }  // namespace
@@ -28,15 +28,19 @@ void dump_value(std::ostream& out, dump_context& context, const symbol_id& value
     out << context.symbol_names.at(value.index);
 }
 
+void dump_value(std::ostream& out, dump_context& context, const function_signature& value) {
+    out << "function sig";
+}
+
 int main() {
-    using namespace expressions;
+    using namespace lir;
 
     function_definition function{
         .head = function_head{
             .name = "calculate",
             .signature = function_signature{
-                .return_type = "number",
-                .parameter_types = {"boolean", "number"},
+                .parameters = {function_parameter{"boolean"}, {"number"}},
+                .function_type = type_id{0},
             },
         },
         .code = {},
