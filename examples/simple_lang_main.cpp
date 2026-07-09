@@ -1,5 +1,6 @@
 #include "simple_lang.hpp"
 #include "simple_lang_dump.hpp"
+#include "simple_lang_xform.hpp"
 #include <iostream>
 #include <memory>
 #include <utility>
@@ -49,6 +50,20 @@ int main() {
     function.code.push_back(make_expression(bool_literal{.value = true}));
     function.code.push_back(make_expression(number{.value = 42}));
     function.code.push_back(make_expression(char_literal{.ch = '!'}));
+    auto sre = store_record_expression{
+        .target = place{ .base = base_var{}, .projection = {}},
+        .initialisations = {}, 
+        .stored_type = type_id{0}
+    };
+    sre.initialisations.push_back(field_initialisation{
+                .field_index = 0,
+                .value = make_expression(number{.value = 2})
+            });
+    sre.initialisations.push_back(field_initialisation{
+                .field_index = 2,
+                .value = make_expression(char_literal{.ch = '@'})
+            });
+    function.code.push_back(make_expression(std::move(sre)));
     function.code.push_back(
         make_expression(string_literal{.table_index = 3, .size = 12}));
     function.code.push_back(make_expression(allocate_record_expression{.type = type_id{0}}));
@@ -57,10 +72,14 @@ int main() {
         .left = make_expression(number{.value = 6}),
         .right = make_expression(number{.value = 7}),
     }));
+    auto fct = std::make_unique<lir::function_definition>(std::move(function));
+
+    simple_lang_xform xformer;
+    auto new_fcts = xformer.rewrite(std::move(fct));
 
     dump_context context{
         .type_names = {"example_record"},
         .symbol_names = {"example_symbol"},
     };
-    dump(std::cout, context, function);
+    dump(std::cout, context, *new_fcts[0]);
 }

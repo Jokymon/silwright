@@ -7,6 +7,10 @@ The project follows [Semantic Versioning](https://semver.org/). Releases are ide
 
 ## [Unreleased]
 
+### Added
+
+- Generate C++ transformer classes for bottom-up pointer-backed node and choice rewrites.
+
 ## [0.2.0] - 2026-07-06
 
 ### Added

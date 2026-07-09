@@ -9,6 +9,7 @@ from silwright.dump_generator import generate_dump_files
 from silwright.generator import generate_cpp_files
 from silwright.parser import parse_definition_file
 from silwright.semantic import analyze
+from silwright.transformer_generator import generate_transformer_files
 from silwright.visitor_generator import generate_visitor_files
 
 
@@ -31,6 +32,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     visitor_header, visitor_source = generate_visitor_files(
         definition, generated_at=generated_at, validated=validated
     )
+    transformer_header, transformer_source = generate_transformer_files(
+        definition, generated_at=generated_at, validated=validated
+    )
     generated = (
         header,
         source,
@@ -39,6 +43,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         dump_source,
         visitor_header,
         visitor_source,
+        transformer_header,
+        transformer_source,
     )
     print(f"generated {', '.join(map(str, generated))}")
     return 0

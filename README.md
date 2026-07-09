@@ -63,9 +63,10 @@ uv run silwright examples/simple_lang.ndef
 ```
 
 The command automatically loads the required `backend_cpp.map` from the same directory, then
-writes the model `.hpp`/`.cpp`, dump `_dump.hpp`/`_dump.ipp`/`_dump.cpp`, and visitor
-`_visitor.hpp`/`_visitor.cpp` files beside `simple_lang.ndef`. Existing generated output files
-are replaced. Syntax errors include their source location.
+writes the model `.hpp`/`.cpp`, dump `_dump.hpp`/`_dump.ipp`/`_dump.cpp`, visitor
+`_visitor.hpp`/`_visitor.cpp`, and transformer `_transformer.hpp`/`_transformer.cpp` files
+beside `simple_lang.ndef`. Existing generated output files are replaced. Syntax errors include
+their source location.
 
 Library users can call `silwright.parse_definition_file(path)` for the same combined lookup
 behavior. `silwright.parse_definitions(text)` and `silwright.parse_type_mappings(text)` are
@@ -73,9 +74,9 @@ available when parsing already-loaded content independently.
 
 `silwright.analyze(parsed)` performs centralized semantic validation and returns a
 `ValidatedModel` containing resolved declarations, backend mappings, flattened trait fields,
-dependency order, and visitor reachability. The model, dump, and visitor generators all accept
-this validated model; passing raw parsed input remains supported and invokes the same analysis
-boundary automatically.
+dependency order, and visitor reachability. The model, dump, visitor, and transformer
+generators all accept this validated model; passing raw parsed input remains supported and
+invokes the same analysis boundary automatically.
 
 The complete current syntax and generation contract are documented in
 [`docs/language-reference.md`](docs/language-reference.md).
@@ -253,3 +254,7 @@ This section is maintained as requirements are discovered or changed during deve
   are deliberately skipped. Definitions referenced exclusively through `value` fields are
   omitted from the visitor API, while unreferenced definitions remain possible entry points.
   Derived visitors can override only the hooks they need.
+- Mutable transformer support is generated as `_transformer.hpp` and `_transformer.cpp`.
+  Public `rewrite` overloads perform bottom-up rewrites of pointer-backed node and choice
+  fields. Concrete node hooks are split into `visit_single` and `visit_multiple`; repeated
+  choice rewrites use generated `<choice>_list` aliases.

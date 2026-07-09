@@ -29,7 +29,8 @@ From a source checkout, generate all C++ files for the included example with:
 uv run silwright examples/simple_lang.ndef
 ```
 
-The generated model, dump support, and visitor files are written beside the `.ndef` file.
+The generated model, dump support, visitor, and transformer files are written beside the
+`.ndef` file.
 Generated C++ currently requires C++20.
 
 See the [language reference](language-reference.md) for the complete syntax and generation

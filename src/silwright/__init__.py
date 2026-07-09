@@ -21,6 +21,10 @@ from silwright.parser import (
     parse_type_mappings,
 )
 from silwright.semantic import SemanticError, ValidatedModel, analyze
+from silwright.transformer_generator import (
+    GeneratedTransformerCpp,
+    generate_transformer_cpp,
+)
 from silwright.visitor_generator import GeneratedVisitorCpp, generate_visitor_cpp
 
 __all__ = [
@@ -30,6 +34,7 @@ __all__ = [
     "Field",
     "GeneratedCpp",
     "GeneratedDumpCpp",
+    "GeneratedTransformerCpp",
     "GeneratedVisitorCpp",
     "GenerationError",
     "Module",
@@ -43,6 +48,7 @@ __all__ = [
     "cpp_name",
     "generate_cpp",
     "generate_dump_cpp",
+    "generate_transformer_cpp",
     "generate_visitor_cpp",
     "parse_definition_file",
     "parse_cpp_backend_config",

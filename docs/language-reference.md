@@ -179,7 +179,7 @@ Before generation, semantic analysis rejects:
 - Cyclic choice aliases and recursive by-value node dependencies.
 - Invalid C++ identifiers, namespaces, and reserved keywords.
 - Generated C++ name collisions, including snake_case and enum `_t` collisions.
-- Collisions with reserved generated names such as `visitor`.
+- Collisions with reserved generated names such as `visitor` and `transformer`.
 
 A field type that is neither a declared NDEF type nor backend-mapped is reported as unknown.
 The analyzer cannot distinguish a misspelled declaration from a missing backend mapping.
@@ -204,6 +204,36 @@ Each module generates a mutable `visitor` class:
 - Null pointers are skipped; repeated pointer fields visit every non-null element.
 - Definitions used exclusively through `value` or `transient` contexts are omitted, while
   unreferenced definitions remain available as roots.
+
+## Transformer contract
+
+Each module generates a mutable bottom-up `transformer` class:
+
+- Public `rewrite(std::unique_ptr<T>)` overloads provide node and choice entry points.
+- Choice rewrites dispatch with `std::visit` and wrap concrete node replacements back into
+  the choice variant.
+- Rewrites first rewrite children and then call a protected virtual node hook.
+- Nodes that can appear in repeated pointer-backed contexts use `visit_multiple(T&)` and return
+  `std::vector<std::unique_ptr<T>>`; repeated choices use the generated `<choice>_list` alias.
+- Other pointer-backed nodes use `visit_single(T&)` and return `std::unique_ptr<T>`.
+- If a concrete node is a direct alternative of exactly one transformable choice, its rewrite
+  and hook return type is promoted to that choice type. For example, a `Number` alternative of
+  `Expr` returns `std::unique_ptr<expr>` or `expr_list`, allowing replacements with any
+  expression alternative.
+- A concrete node that is a direct alternative of multiple transformable choices is rejected
+  because its generic transformer return type would be ambiguous. Such nodes also cannot be
+  used directly in pointer-backed structural fields; they must be reached through the choice
+  type used as their transformer return type.
+- Multiple-capable status propagates through choices: a repeated choice makes its alternatives
+  multiple-capable, and a choice containing a multiple-capable alternative is also
+  multiple-capable.
+- Default hooks move the rewritten node into a new owning pointer, or into a one-element list
+  for multiple-capable nodes.
+- Only non-`value`, non-`transient` node and choice fields are rewritten. Trait fields are not
+  traversed, matching the visitor implementation.
+- Null single rewrites return `nullptr`; null multiple rewrites return an empty list.
+- If a single field targets a multiple-capable type, zero replacements become `nullptr`, one
+  replacement is moved back into the field, and more than one replacement trips an assertion.
 
 ## Dump contract
 

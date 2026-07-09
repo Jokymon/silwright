@@ -51,6 +51,8 @@ class ValidatedModel:
     repeated_pointer_choices: tuple[Choice, ...]
     ordered_nodes: tuple[Node, ...]
     visitable_names: frozenset[str]
+    transformer_multiple_names: frozenset[str]
+    transformer_return_choices: dict[str, Choice]
 
     @property
     def module(self) -> Module:
@@ -72,6 +74,15 @@ def analyze(parsed: ParsedDefinitionFile) -> ValidatedModel:
     ordered_nodes = _order_nodes(parsed.module, declarations)
     _validate_cpp_names(parsed.module, repeated_pointer_choices)
     visitable_names = _visitable_definition_names(parsed.module, declarations)
+    transformer_multiple_names = _transformer_multiple_definition_names(
+        parsed.module, declarations, visitable_names
+    )
+    transformer_return_choices = _transformer_return_choices(
+        parsed.module, declarations, visitable_names
+    )
+    _validate_transformer_return_choices(
+        parsed.module, declarations, transformer_return_choices
+    )
     return ValidatedModel(
         parsed=parsed,
         declarations=declarations,
@@ -81,6 +92,8 @@ def analyze(parsed: ParsedDefinitionFile) -> ValidatedModel:
         repeated_pointer_choices=repeated_pointer_choices,
         ordered_nodes=ordered_nodes,
         visitable_names=frozenset(visitable_names),
+        transformer_multiple_names=frozenset(transformer_multiple_names),
+        transformer_return_choices=transformer_return_choices,
     )
 
 
@@ -335,8 +348,11 @@ def _validate_cpp_names(
             )
         generated[alias_name] = f"{choice.name} list alias"
 
-    if "visitor" in generated:
-        raise SemanticError("definition name conflicts with generated visitor class")
+    for generated_class in ("visitor", "transformer"):
+        if generated_class in generated:
+            raise SemanticError(
+                f"definition name conflicts with generated {generated_class} class"
+            )
 
 
 def _validate_cpp_identifier(subject: str, name: str) -> None:
@@ -378,3 +394,91 @@ def _visitable_definition_names(
                 visitable.add(alternative)
                 pending.append(alternative)
     return visitable
+
+
+def _transformer_multiple_definition_names(
+    module: Module,
+    declarations: dict[str, Definition],
+    visitable_names: set[str],
+) -> set[str]:
+    structured = {
+        item.name: item for item in module.definitions if isinstance(item, (Node, Choice))
+    }
+    multiple: set[str] = set()
+    for item in module.definitions:
+        if not isinstance(item, Node):
+            continue
+        for field in item.fields:
+            if not field.multiple or field.by_value or field.transient:
+                continue
+            if field.type_name in structured and field.type_name in visitable_names:
+                multiple.add(field.type_name)
+
+    changed = True
+    while changed:
+        changed = False
+        for name in tuple(multiple):
+            item = declarations[name]
+            if not isinstance(item, Choice):
+                continue
+            for alternative in item.alternatives:
+                if alternative in structured and alternative not in multiple:
+                    multiple.add(alternative)
+                    changed = True
+        for item in structured.values():
+            if not isinstance(item, Choice) or item.name in multiple:
+                continue
+            if any(alternative in multiple for alternative in item.alternatives):
+                multiple.add(item.name)
+                changed = True
+    return multiple
+
+
+def _transformer_return_choices(
+    module: Module,
+    declarations: dict[str, Definition],
+    visitable_names: set[str],
+) -> dict[str, Choice]:
+    result: dict[str, Choice] = {}
+    for choice in (
+        item
+        for item in module.definitions
+        if isinstance(item, Choice) and item.name in visitable_names
+    ):
+        for alternative in choice.alternatives:
+            target = declarations[alternative]
+            if not isinstance(target, Node) or alternative not in visitable_names:
+                continue
+            previous = result.get(alternative)
+            if previous is not None:
+                raise SemanticError(
+                    f"node {alternative!r} appears in multiple transformable choices "
+                    f"({previous.name!r} and {choice.name!r}); transformer return type "
+                    "is ambiguous"
+                )
+            result[alternative] = choice
+    return result
+
+
+def _validate_transformer_return_choices(
+    module: Module,
+    declarations: dict[str, Definition],
+    transformer_return_choices: dict[str, Choice],
+) -> None:
+    for item in module.definitions:
+        if not isinstance(item, Node):
+            continue
+        for field in item.fields:
+            target = declarations.get(field.type_name)
+            if (
+                field.by_value
+                or field.transient
+                or not isinstance(target, Node)
+                or target.name not in transformer_return_choices
+            ):
+                continue
+            choice = transformer_return_choices[target.name]
+            raise SemanticError(
+                f"field {field.name!r} in {item.name} references node {target.name!r} "
+                f"directly, but transformer rewrites that node as choice {choice.name!r}"
+            )
