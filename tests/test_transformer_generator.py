@@ -26,6 +26,7 @@ def _module() -> ParsedDefinitionFile:
                     (
                         Field("single", "Expr"),
                         Field("children", "Expr", multiple=True),
+                        Field("arguments", "Expr", multiple=True, fixed=True),
                         Field("embedded", "Leaf", by_value=True),
                         Field("tooling_child", "Other", transient=True),
                         Field("scalar", "identifier"),
@@ -76,6 +77,12 @@ def test_transformer_source_dispatches_choices_and_rewrites_children() -> None:
     assert "expr_list replacement_children;" in source
     assert "replacement_children.push_back(std::move(replacement));" in source
     assert "value.children = std::move(replacement_children);" in source
+    assert "expr_list replacement_arguments;" in source
+    assert "replacement_arguments.reserve(value.arguments.size());" in source
+    assert "replacement_arguments.push_back(nullptr);" in source
+    assert "assert(replacements.size() == 1);" in source
+    assert "replacement_arguments.push_back(std::move(replacements.front()));" in source
+    assert "value.arguments = std::move(replacement_arguments);" in source
     assert "value.embedded" not in source
     assert "value.tooling_child" not in source
     assert "value.scalar" not in source

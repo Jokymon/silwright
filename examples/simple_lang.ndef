@@ -91,7 +91,7 @@ end
 node FunctionCall
     function_name: identifier
     symbol_ref: symbol
-    arguments: *Expr
+    arguments: fixed *Expr
 end
 
 node CastExpression

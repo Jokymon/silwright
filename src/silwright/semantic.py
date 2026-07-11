@@ -149,6 +149,11 @@ def _validate_modifiers(
                 raise SemanticError(
                     f"field {field.name!r} in {owner.name} cannot be multiple and optional"
                 )
+            if field.fixed and not field.multiple:
+                raise SemanticError(
+                    f"field {field.name!r} in {owner.name} cannot be fixed without "
+                    "being multiple"
+                )
             target = declarations.get(field.type_name)
             if isinstance(owner, Trait) and field.by_value and isinstance(
                 target, (Node, Choice)

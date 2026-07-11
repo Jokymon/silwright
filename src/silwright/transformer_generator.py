@@ -255,7 +255,10 @@ def _render_rewrite_children(
         access = f"value.{field.name}"
         target_multiple = field.type_name in multiple_names
         if field.multiple:
-            statements.extend(_render_multiple_field_rewrite(access, target))
+            if field.fixed:
+                statements.extend(_render_fixed_multiple_field_rewrite(access, target))
+            else:
+                statements.extend(_render_multiple_field_rewrite(access, target))
         elif target_multiple:
             statements.extend(_render_single_from_multiple_rewrite(access))
         else:
@@ -282,6 +285,31 @@ def _render_multiple_field_rewrite(access: str, target: Node | Choice) -> tuple[
         f"                replacement_{field_name}.push_back(std::move(replacement));",
         "            }",
         "        }",
+        "    }",
+        f"    {access} = std::move(replacement_{field_name});",
+    )
+
+
+def _render_fixed_multiple_field_rewrite(
+    access: str, target: Node | Choice
+) -> tuple[str, ...]:
+    field_name = access.rsplit(".", 1)[1]
+    replacement_type = (
+        f"{cpp_name(target.name)}_list"
+        if isinstance(target, Choice)
+        else f"std::vector<std::unique_ptr<{cpp_name(target.name)}>>"
+    )
+    return (
+        f"    {replacement_type} replacement_{field_name};",
+        f"    replacement_{field_name}.reserve({access}.size());",
+        f"    for (auto& child : {access}) {{",
+        "        if (!child) {",
+        f"            replacement_{field_name}.push_back(nullptr);",
+        "            continue;",
+        "        }",
+        "        auto replacements = rewrite(std::move(child));",
+        "        assert(replacements.size() == 1);",
+        f"        replacement_{field_name}.push_back(std::move(replacements.front()));",
         "    }",
         f"    {access} = std::move(replacement_{field_name});",
     )

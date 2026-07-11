@@ -114,6 +114,13 @@ def test_all_generators_accept_one_validated_model() -> None:
             "field 'values' in Item cannot be multiple and optional",
         ),
         (
+            ParsedDefinitionFile(
+                Module("bad", (Node("Item", (Field("value", "number", fixed=True),)),)),
+                (TypeMapping("number", "long"),),
+            ),
+            "field 'value' in Item cannot be fixed without being multiple",
+        ),
+        (
             ParsedDefinitionFile(Module("bad-name", (Node("Item"),)), ()),
             "module generates invalid C++ identifier 'bad-name'",
         ),

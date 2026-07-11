@@ -27,7 +27,7 @@ lines are allowed inside bodies.
 The language keywords are:
 
 ```text
-module node trait choice enum end with value transient
+module node trait choice enum end with value transient fixed
 ```
 
 `*`, `?`, `:`, `|`, and `,` are syntax operators or separators. Keywords are contextual in
@@ -53,7 +53,7 @@ trait         = "trait", name, newline,
                 { field }, "end", newline ;
 
 field         = name, ":",
-                [ "*" | "?" ], [ "value" ], [ "transient" ],
+                [ "fixed" ], [ "*" | "?" ], [ "value" ], [ "transient" ],
                 name, newline ;
 
 choice        = "choice", name, newline,
@@ -99,10 +99,13 @@ A node generates a `snake_case` C++ struct. Fields resolve as follows:
 Modifiers have the fixed order shown below:
 
 ```text
-field: [* | ?] [value] [transient] Type
+field: [fixed] [* | ?] [value] [transient] Type
 ```
 
 - `*` generates `std::vector<T>` around the otherwise generated representation.
+- `fixed` marks a repeated field whose element count must be preserved by generated
+  transformers. It is valid only together with `*` and currently uses the same C++ storage as
+  the corresponding non-fixed repeated field.
 - `?` generates `std::optional<T>` for backend-mapped, enum, and `value` types. A pointer-backed
   node or choice remains `std::unique_ptr<T>`, which already represents absence.
 - `value` embeds node and choice types instead of using `std::unique_ptr`.
@@ -113,6 +116,7 @@ Examples:
 
 ```text
 names: *identifier
+arguments: fixed *Expr
 metadata: ?value Metadata
 function_scope: transient scope
 ```
@@ -234,6 +238,8 @@ Each module generates a mutable bottom-up `transformer` class:
 - Null single rewrites return `nullptr`; null multiple rewrites return an empty list.
 - If a single field targets a multiple-capable type, zero replacements become `nullptr`, one
   replacement is moved back into the field, and more than one replacement trips an assertion.
+- Fixed repeated fields preserve one output slot per input slot. Null input elements remain
+  null elements; non-null elements must rewrite to exactly one replacement.
 
 ## Dump contract
 

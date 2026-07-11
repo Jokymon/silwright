@@ -172,6 +172,29 @@ end
     )
 
 
+def test_fixed_modifier_parses_for_repeated_fields() -> None:
+    source = """\
+module example
+node FunctionCall
+    arguments: fixed *Expr
+    parameters: fixed *value Parameter
+end
+"""
+
+    assert parse_definitions(source) == Module(
+        "example",
+        (
+            Node(
+                "FunctionCall",
+                (
+                    Field("arguments", "Expr", multiple=True, fixed=True),
+                    Field("parameters", "Parameter", multiple=True, by_value=True, fixed=True),
+                ),
+            ),
+        ),
+    )
+
+
 def test_value_remains_valid_as_a_field_name() -> None:
     source = "module example\nnode Number\n    value: number\nend\n"
 

@@ -148,6 +148,8 @@ end
 - `trait` declares reusable fields. A node applies one or more traits with
   `node FunctionHead with Location, Documented`; generated traits are public base structs.
 - Prefixing a field type with `*`, as in `code: *Expr`, makes it a repeated field.
+- Prefixing a repeated field with `fixed`, as in `arguments: fixed *Expr`, preserves the field's
+  element count in generated transformers. It uses the same C++ storage as `*Expr`.
 - Prefixing a field type with `?`, as in `label: ?identifier`, makes it optional. Built-in,
   enum, and `value` fields use `std::optional`; pointer-backed node and choice fields remain
   `std::unique_ptr` because they already represent absence. `*` and `?` cannot be combined.
@@ -226,6 +228,9 @@ This section is maintained as requirements are discovered or changed during deve
 - Repeated fields use `std::vector` around the otherwise generated field type. For example,
   `*identifier` becomes `std::vector<std::string>` and `*Expr` becomes
   `std::vector<std::unique_ptr<expr>>`.
+- Fixed repeated fields use the same C++ storage as repeated fields, but generated transformers
+  preserve one output slot per input slot. Null elements remain null; non-null elements must
+  produce exactly one replacement.
 - Optional fields use `std::optional` around the otherwise generated value type. Missing
   optional values and null node pointers are both emitted as `null` by generated dumpers.
 - Value fields require complete C++ types. The generator dependency-orders affected structs
