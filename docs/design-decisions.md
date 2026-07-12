@@ -148,6 +148,19 @@ Definitions with a non-value use remain visitable, and definitions with no incom
 available as traversal roots. This keeps generated visitor APIs aligned with actual traversal
 semantics without requiring another language annotation.
 
+Visitors also support localized replacement of pointer-backed choice children. For each
+visitable choice, the generated visitor owns replacement state and exposes protected
+`replace_<choice>(...)` helpers. A derived `leave(T&)` hook can request replacement with either
+one choice pointer or a list of choice pointers. The parent traversal consumes that state
+immediately after visiting the child and then clears it. The state includes an explicit flag so
+an empty replacement list is distinct from no replacement request; this allows deletion where
+the surrounding field permits it.
+
+Replacement support is intentionally limited to choice fields. Single choice fields accept at
+most one requested replacement. Repeated choice fields can delete, replace, or expand an
+element. Fixed repeated choice fields preserve cardinality and require exactly one replacement
+for each non-null visited child.
+
 ## External mutable transformer
 
 Each module generates a `transformer` class in `_transformer.hpp` and `_transformer.cpp`.

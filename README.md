@@ -258,7 +258,9 @@ This section is maintained as requirements are discovered or changed during deve
   virtual `enter` and `leave` hooks around pointer-backed children; scalars and `value` fields
   are deliberately skipped. Definitions referenced exclusively through `value` fields are
   omitted from the visitor API, while unreferenced definitions remain possible entry points.
-  Derived visitors can override only the hooks they need.
+  Derived visitors can override only the hooks they need. Visitors also provide protected
+  `replace_<choice>` helpers for pointer-backed choice children; replacements are consumed by
+  the parent traversal immediately after each child visit.
 - Mutable transformer support is generated as `_transformer.hpp` and `_transformer.cpp`.
   Public `rewrite` overloads perform bottom-up rewrites of pointer-backed node and choice
   fields. Concrete node hooks are split into `visit_single` and `visit_multiple`; repeated

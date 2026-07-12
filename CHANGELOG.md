@@ -12,6 +12,7 @@ The project follows [Semantic Versioning](https://semver.org/). Releases are ide
 - Generate C++ transformer classes for bottom-up pointer-backed node and choice rewrites.
 - Add `fixed *Type` fields for repeated fields whose generated transformer rewrites must
   preserve element count.
+- Add generated visitor replacement helpers for pointer-backed choice children.
 
 ## [0.2.0] - 2026-07-06
 

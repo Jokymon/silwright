@@ -35,6 +35,7 @@ def generate_visitor_cpp(
         for item in parsed.module.definitions
         if isinstance(item, Choice) and item.name in visitable_names
     )
+    list_alias_names = frozenset(item.name for item in validated.repeated_pointer_choices)
     nodes = tuple(
         item
         for item in parsed.module.definitions
@@ -58,6 +59,16 @@ def generate_visitor_cpp(
             f"    virtual void leave({cpp_name(item.name)}& value);",
         )
     )
+    replacement_helpers = "\n".join(
+        line
+        for item in choices
+        for line in _replacement_helper_declarations(item, list_alias_names)
+    )
+    replacement_state = "\n".join(
+        line
+        for item in choices
+        for line in _replacement_state_declarations(item, list_alias_names)
+    )
     header = (
         "#pragma once\n\n"
         f'#include "{model_header_name}"\n\n'
@@ -67,17 +78,27 @@ def generate_visitor_cpp(
         "    virtual ~visitor() = default;\n\n"
         f"{public_visits}\n\n"
         "protected:\n"
-        f"{hooks}\n"
+        f"{hooks}\n\n"
+        f"{replacement_helpers}\n\n"
+        "private:\n"
+        f"{replacement_state}\n"
         "};\n\n"
         f"}}  // namespace {namespace}\n"
     )
 
     definitions: list[str] = []
     definitions.extend(_render_choice_visit(item) for item in choices)
-    definitions.extend(_render_node_visit(item, declarations) for item in nodes)
+    definitions.extend(
+        _render_node_visit(item, declarations, list_alias_names) for item in nodes
+    )
     definitions.extend(_render_hooks(item) for item in nodes)
+    definitions.extend(
+        _render_replacement_helpers(item, list_alias_names) for item in choices
+    )
     source = (
         f'#include "{visitor_header_name}"\n\n'
+        "#include <cassert>\n"
+        "#include <utility>\n"
         "#include <variant>\n\n"
         f"namespace {namespace} {{\n\n"
         f"{'\n\n'.join(definitions)}\n\n"
@@ -114,9 +135,40 @@ def _render_choice_visit(item: Choice) -> str:
 }}'''
 
 
+def _choice_list_type(item: Choice, list_alias_names: frozenset[str]) -> str:
+    type_name = cpp_name(item.name)
+    if item.name in list_alias_names:
+        return f"{type_name}_list"
+    return f"std::vector<std::unique_ptr<{type_name}>>"
+
+
+def _replacement_helper_declarations(
+    item: Choice, list_alias_names: frozenset[str]
+) -> tuple[str, str]:
+    type_name = cpp_name(item.name)
+    list_type = _choice_list_type(item, list_alias_names)
+    return (
+        f"    void replace_{type_name}(std::unique_ptr<{type_name}> replacement);",
+        f"    void replace_{type_name}({list_type} replacements);",
+    )
+
+
+def _replacement_state_declarations(
+    item: Choice, list_alias_names: frozenset[str]
+) -> tuple[str, str, str]:
+    type_name = cpp_name(item.name)
+    list_type = _choice_list_type(item, list_alias_names)
+    return (
+        f"    bool has_{type_name}_replacements_ = false;",
+        f"    {list_type} {type_name}_replacements_;",
+        f"    {list_type} take_{type_name}_replacements();",
+    )
+
+
 def _render_node_visit(
     item: Node,
     declarations: dict[str, Node | Trait | Choice | Enum],
+    list_alias_names: frozenset[str],
 ) -> str:
     statements = ["    enter(value);"]
     for field in item.fields:
@@ -125,23 +177,33 @@ def _render_node_visit(
             continue
         access = f"value.{field.name}"
         if field.multiple:
-            statements.extend(
-                (
-                    f"    for (auto& child : {access}) {{",
-                    "        if (child) {",
-                    "            visit(*child);",
-                    "        }",
-                    "    }",
+            if isinstance(target, Choice):
+                statements.extend(
+                    _render_choice_multiple_field_visit(
+                        access, target, field.fixed, list_alias_names
+                    )
                 )
-            )
+            else:
+                statements.extend(
+                    (
+                        f"    for (auto& child : {access}) {{",
+                        "        if (child) {",
+                        "            visit(*child);",
+                        "        }",
+                        "    }",
+                    )
+                )
         else:
-            statements.extend(
-                (
-                    f"    if ({access}) {{",
-                    f"        visit(*{access});",
-                    "    }",
+            if isinstance(target, Choice):
+                statements.extend(_render_choice_single_field_visit(access, target))
+            else:
+                statements.extend(
+                    (
+                        f"    if ({access}) {{",
+                        f"        visit(*{access});",
+                        "    }",
+                    )
                 )
-            )
     statements.append("    leave(value);")
     body = "\n".join(statements)
     return f'''void visitor::visit({cpp_name(item.name)}& value) {{
@@ -149,8 +211,97 @@ def _render_node_visit(
 }}'''
 
 
+def _render_choice_single_field_visit(access: str, target: Choice) -> tuple[str, ...]:
+    name = cpp_name(target.name)
+    field_name = access.rsplit(".", 1)[1]
+    replacements = f"replacements_{field_name}"
+    return (
+        f"    if ({access}) {{",
+        f"        visit(*{access});",
+        f"        if (has_{name}_replacements_) {{",
+        f"            auto {replacements} = take_{name}_replacements();",
+        f"            assert({replacements}.size() <= 1);",
+        f"            if ({replacements}.empty()) {{",
+        f"                {access} = nullptr;",
+        "            } else {",
+        f"                {access} = std::move({replacements}.front());",
+        "            }",
+        "        }",
+        "    }",
+    )
+
+
+def _render_choice_multiple_field_visit(
+    access: str,
+    target: Choice,
+    fixed: bool,
+    list_alias_names: frozenset[str],
+) -> tuple[str, ...]:
+    name = cpp_name(target.name)
+    field_name = access.rsplit(".", 1)[1]
+    replacement_list = f"replacement_{field_name}"
+    replacements = f"replacements_{field_name}"
+    lines = [
+        f"    {_choice_list_type(target, list_alias_names)} {replacement_list};",
+        f"    {replacement_list}.reserve({access}.size());",
+        f"    for (auto& child : {access}) {{",
+        "        if (!child) {",
+        f"            {replacement_list}.push_back(nullptr);",
+        "            continue;",
+        "        }",
+        "        visit(*child);",
+        f"        if (has_{name}_replacements_) {{",
+        f"            auto {replacements} = take_{name}_replacements();",
+    ]
+    if fixed:
+        lines.extend(
+            (
+                f"            assert({replacements}.size() == 1);",
+                f"            {replacement_list}.push_back(std::move({replacements}.front()));",
+            )
+        )
+    else:
+        lines.extend(
+            (
+                f"            for (auto& replacement : {replacements}) {{",
+                f"                {replacement_list}.push_back(std::move(replacement));",
+                "            }",
+            )
+        )
+    lines.extend(
+        (
+            "        } else {",
+            f"            {replacement_list}.push_back(std::move(child));",
+            "        }",
+            "    }",
+            f"    {access} = std::move({replacement_list});",
+        )
+    )
+    return tuple(lines)
+
+
 def _render_hooks(item: Node) -> str:
     type_name = cpp_name(item.name)
     return f'''void visitor::enter({type_name}&) {{}}
 
 void visitor::leave({type_name}&) {{}}'''
+
+
+def _render_replacement_helpers(item: Choice, list_alias_names: frozenset[str]) -> str:
+    type_name = cpp_name(item.name)
+    list_type = _choice_list_type(item, list_alias_names)
+    return f'''void visitor::replace_{type_name}(std::unique_ptr<{type_name}> replacement) {{
+    has_{type_name}_replacements_ = true;
+    {type_name}_replacements_.clear();
+    {type_name}_replacements_.push_back(std::move(replacement));
+}}
+
+void visitor::replace_{type_name}({list_type} replacements) {{
+    has_{type_name}_replacements_ = true;
+    {type_name}_replacements_ = std::move(replacements);
+}}
+
+{list_type} visitor::take_{type_name}_replacements() {{
+    has_{type_name}_replacements_ = false;
+    return std::move({type_name}_replacements_);
+}}'''

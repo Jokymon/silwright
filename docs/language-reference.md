@@ -206,6 +206,13 @@ Each module generates a mutable `visitor` class:
 - Node visits call virtual `enter(T&)`, traverse children, then call virtual `leave(T&)`.
 - Only non-`value`, non-`transient` node and choice fields are traversed.
 - Null pointers are skipped; repeated pointer fields visit every non-null element.
+- Pointer-backed choice fields support replacement requests from derived visitors. For each
+  visitable choice, the visitor exposes protected `replace_<choice>(...)` helpers accepting
+  either one `std::unique_ptr<choice>` or a choice-list replacement. The base visitor records
+  explicit replacement state, consumes it immediately after the child visit, and then clears it.
+- Single choice fields accept zero or one requested replacement; zero deletes the child and more
+  than one trips an assertion. Repeated choice fields accept any number of replacements per
+  child. Fixed repeated choice fields require exactly one replacement per non-null child.
 - Definitions used exclusively through `value` or `transient` contexts are omitted, while
   unreferenced definitions remain available as roots.
 
