@@ -227,7 +227,7 @@ This section is maintained as requirements are discovered or changed during deve
   dump output and visitor child traversal.
 - Repeated fields use `std::vector` around the otherwise generated field type. For example,
   `*identifier` becomes `std::vector<std::string>` and `*Expr` becomes
-  `std::vector<std::unique_ptr<expr>>`.
+  the generated `expr_list` alias for `std::vector<std::unique_ptr<expr>>`.
 - Fixed repeated fields use the same C++ storage as repeated fields, but generated transformers
   preserve one output slot per input slot. Null elements remain null; non-null elements must
   produce exactly one replacement.

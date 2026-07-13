@@ -67,7 +67,7 @@ def test_generate_cpp() -> None:
     assert "op_t op;" in generated.header
     assert "std::unique_ptr<expr> left;" in generated.header
     assert "std::vector<std::string> names;" in generated.header
-    assert "std::vector<std::unique_ptr<expr>> code;" in generated.header
+    assert "expr_list code;" in generated.header
     assert "#include <vector>" in generated.header
     assert generated.source == '#include "expressions.hpp"\n'
 
@@ -107,7 +107,7 @@ def test_generate_cpp_adds_list_alias_for_repeated_pointer_choice() -> None:
     assert header.count(
         "using expr_list = std::vector<std::unique_ptr<expr>>;"
     ) == 1
-    assert "std::vector<std::unique_ptr<expr>> body;" in header
+    assert "expr_list body;" in header
 
 
 def test_generate_cpp_omits_list_alias_for_repeated_value_choice() -> None:

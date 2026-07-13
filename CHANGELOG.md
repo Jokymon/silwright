@@ -15,6 +15,7 @@ The project follows [Semantic Versioning](https://semver.org/). Releases are ide
 - Add `fixed *Type` fields for repeated fields whose generated transformer rewrites must
   preserve element count.
 - Add generated visitor replacement helpers for pointer-backed choice children.
+- Use generated `<choice>_list` aliases in struct fields for repeated pointer-backed choices.
 
 ## [0.2.0] - 2026-07-06
 

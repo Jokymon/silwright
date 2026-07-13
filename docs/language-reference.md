@@ -140,6 +140,7 @@ C++ backend also generates one reusable list alias:
 using expr_list = std::vector<std::unique_ptr<expr>>;
 ```
 
+Repeated pointer-backed choice fields use this alias in generated structs.
 Repeated `value` choice fields do not generate this alias because their representation is
 `std::vector<expr>` instead.
 

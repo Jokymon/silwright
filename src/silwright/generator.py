@@ -154,7 +154,13 @@ def _render_struct(
                 field_type = named_type if field.by_value else f"std::unique_ptr<{named_type}>"
             else:
                 raise AssertionError("validated field type is not C++ representable")
-        if field.multiple:
+        if (
+            field.multiple
+            and not field.by_value
+            and isinstance(declarations.get(field.type_name), Choice)
+        ):
+            field_type = f"{cpp_name(field.type_name)}_list"
+        elif field.multiple:
             field_type = f"std::vector<{field_type}>"
         elif field.optional and not pointer_backed:
             field_type = f"std::optional<{field_type}>"
