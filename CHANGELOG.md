@@ -7,6 +7,8 @@ The project follows [Semantic Versioning](https://semver.org/). Releases are ide
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-07-13
+
 ### Added
 
 - Generate C++ transformer classes for bottom-up pointer-backed node and choice rewrites.
@@ -40,7 +42,8 @@ The project follows [Semantic Versioning](https://semver.org/). Releases are ide
 - Example language definition and end-to-end C++ example.
 - Visual Studio Code language support for `.ndef` files.
 
-[Unreleased]: https://github.com/Jokymon/silwright/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/Jokymon/silwright/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/Jokymon/silwright/releases/tag/v0.3.0
 [0.2.0]: https://github.com/Jokymon/silwright/releases/tag/v0.2.0
 [0.1.3]: https://github.com/Jokymon/silwright/releases/tag/v0.1.3
 [0.1.0]: https://github.com/Jokymon/silwright/releases/tag/v0.1.0
