@@ -1,6 +1,10 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
-const { findDeclarations } = require("../src/symbols");
+const {
+  findBackendMappings,
+  findDeclarations,
+  findFieldTypeReferences,
+} = require("../src/symbols");
 
 test("finds node, trait, choice, and enum declaration names", () => {
   const text = [
@@ -43,4 +47,41 @@ test("keeps the first declaration when a name is duplicated", () => {
   const declaration = findDeclarations(text).get("Same");
 
   assert.equal(declaration.start, text.indexOf("Same"));
+});
+
+test("finds field type references with modifiers", () => {
+  const text = [
+    "node FunctionCall",
+    "    target: Expr",
+    "    arguments: fixed *Expr",
+    "    metadata: ?value Metadata",
+    "    cache: transient scope // ignored comment: Fake",
+    "end",
+  ].join("\n");
+
+  const references = findFieldTypeReferences(text);
+
+  assert.deepEqual(
+    references.map((reference) => reference.name),
+    ["Expr", "Expr", "Metadata", "scope"],
+  );
+  for (const reference of references) {
+    assert.equal(text.slice(reference.start, reference.end), reference.name);
+  }
+});
+
+test("finds backend map mappings", () => {
+  const text = [
+    "@include <string>",
+    "identifier: std::string",
+    "number: long # mapped scalar",
+    "# ignored: value",
+    "identifier: duplicate",
+    "",
+  ].join("\n");
+
+  const mappings = findBackendMappings(text);
+
+  assert.deepEqual([...mappings.keys()], ["identifier", "number"]);
+  assert.equal(mappings.get("identifier").start, text.indexOf("identifier"));
 });

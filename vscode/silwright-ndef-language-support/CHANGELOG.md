@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.6.0 - 2026-07-14
+
+- Add basic highlighting for `backend_cpp.map` files.
+- Add semantic highlighting, diagnostics, and Go to Definition support for NDEF field types
+  resolved through the sibling `backend_cpp.map`.
+
 ## 0.5.0 - 2026-07-04
 
 - Rename the extension and project branding from struct-gen to Silwright.

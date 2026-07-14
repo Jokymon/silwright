@@ -2,7 +2,7 @@
   "name": "silwright-ndef-language-support",
   "displayName": "Silwright NDEF Language Support",
   "description": "Syntax highlighting and editor support for Silwright node definition files.",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "publisher": "silvan-wegmann",
   "license": "MIT",
   "repository": {
@@ -18,7 +18,8 @@
   },
   "main": "./extension.js",
   "activationEvents": [
-    "onLanguage:ndef"
+    "onLanguage:ndef",
+    "onLanguage:silwright-cpp-map"
   ],
   "scripts": {
     "test": "node --test",
@@ -44,6 +45,16 @@
           ".ndef"
         ],
         "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "silwright-cpp-map",
+        "aliases": [
+          "Silwright C++ Backend Map",
+          "backend_cpp.map"
+        ],
+        "filenames": [
+          "backend_cpp.map"
+        ]
       }
     ],
     "grammars": [
@@ -51,6 +62,11 @@
         "language": "ndef",
         "scopeName": "source.ndef",
         "path": "./syntaxes/ndef.tmLanguage.json"
+      },
+      {
+        "language": "silwright-cpp-map",
+        "scopeName": "source.silwright-cpp-map",
+        "path": "./syntaxes/backend_cpp_map.tmLanguage.json"
       }
     ]
   }

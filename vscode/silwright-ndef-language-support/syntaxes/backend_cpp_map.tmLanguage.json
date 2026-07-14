@@ -1,0 +1,59 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Silwright C++ Backend Map",
+  "scopeName": "source.silwright-cpp-map",
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#includes"
+    },
+    {
+      "include": "#mappings"
+    }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.number-sign.silwright-cpp-map",
+          "match": "#.*$"
+        }
+      ]
+    },
+    "includes": {
+      "patterns": [
+        {
+          "match": "^\\s*(@include)\\s+(<[^>\\r\\n]+>|\"[^\"\\r\\n]+\")",
+          "captures": {
+            "1": {
+              "name": "keyword.control.include.silwright-cpp-map"
+            },
+            "2": {
+              "name": "string.quoted.include.silwright-cpp-map"
+            }
+          }
+        }
+      ]
+    },
+    "mappings": {
+      "patterns": [
+        {
+          "match": "^\\s*([A-Za-z_][A-Za-z0-9_]*)(\\s*)(:)(\\s*)([^#\\r\\n]+)",
+          "captures": {
+            "1": {
+              "name": "entity.name.type.silwright-cpp-map"
+            },
+            "3": {
+              "name": "punctuation.separator.key-value.silwright-cpp-map"
+            },
+            "5": {
+              "name": "support.type.cpp.silwright-cpp-map"
+            }
+          }
+        }
+      ]
+    }
+  }
+}
