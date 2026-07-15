@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.7.0 - 2026-07-15
+
+- Declare workspace trust and virtual workspace capabilities for Marketplace metadata.
+- Add Marketplace publishing support to the VS Code extension release workflow.
+- Add a Marketplace icon with an editable SVG source.
+
 ## 0.6.0 - 2026-07-14
 
 - Add basic highlighting for `backend_cpp.map` files.

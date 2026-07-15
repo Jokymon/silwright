@@ -54,6 +54,29 @@ The package uses a `src` layout. Runtime dependencies and development tools are 
 `pyproject.toml`; exact resolved versions are committed in `uv.lock`. Add dependencies with
 `uv add <package>` and development dependencies with `uv add --dev <package>`.
 
+### VS Code extension development
+
+The VS Code extension lives in `vscode/silwright-ndef-language-support`. Open that directory
+in Visual Studio Code and press `F5` to launch an Extension Development Host. Open an `.ndef`
+file in that window to exercise the extension.
+
+The extension has no build step or runtime dependencies. Run its unit tests with:
+
+```shell
+cd vscode/silwright-ndef-language-support
+npm test
+```
+
+The Marketplace icon is committed as `icon.png`; `icon.svg` is the editable source for future
+icon iterations and is excluded from the packaged VSIX through `.vscodeignore`.
+
+To package it after installing `@vscode/vsce`:
+
+```shell
+cd vscode/silwright-ndef-language-support
+vsce package
+```
+
 ## Usage
 
 Generate C++ from the example node definition:
@@ -107,6 +130,21 @@ git push origin v0.1.0
 
 The release workflow verifies that the tag, project version, and changelog agree before it
 builds and publishes the distributions to PyPI.
+
+VS Code extension releases use `vscode-v<version>` tags and are independent of Python package
+releases. Before creating a release, update the `version` in
+`vscode/silwright-ndef-language-support/package.json`, move the relevant entries in
+`vscode/silwright-ndef-language-support/CHANGELOG.md` into a matching version section, and
+commit those changes. Then create and push the matching tag; for version 0.7.0 this is:
+
+```shell
+git tag vscode-v0.7.0
+git push origin vscode-v0.7.0
+```
+
+The VS Code extension release workflow runs the tests, packages the `.vsix`, and attaches it
+to a dedicated GitHub Release. The workflow rejects a tag when its version does not match
+`package.json`.
 
 ## Definition language
 

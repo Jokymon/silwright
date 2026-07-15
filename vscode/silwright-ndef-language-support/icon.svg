@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-label="Silwright NDEF Language Support icon">
+  <rect width="256" height="256" fill="#0a1934"/>
+
+  <g id="trees">
+    <g id="small-left" fill="#4b8e5e">
+      <rect x="48" y="181" width="18" height="39" rx="5"/>
+      <path d="M57 101 C43 120 31 141 22 160 C32 158 40 158 47 160 C37 175 28 190 18 202 C42 199 73 199 97 202 C87 190 78 175 68 160 C75 158 83 158 92 160 C83 141 71 120 57 101 Z"/>
+    </g>
+
+    <g id="large-center" fill="#3f7c52">
+      <rect x="116" y="178" width="24" height="44" rx="6"/>
+      <path d="M128 44 C108 75 91 104 78 132 C90 130 101 130 111 133 C96 153 85 172 74 193 C106 189 150 189 182 193 C171 172 160 153 145 133 C155 130 166 130 178 132 C165 104 148 75 128 44 Z"/>
+    </g>
+
+    <g id="small-right" fill="#4b8e5e">
+      <rect x="190" y="181" width="18" height="39" rx="5"/>
+      <path d="M199 101 C185 120 173 141 164 160 C174 158 182 158 189 160 C179 175 170 190 160 202 C184 199 215 199 239 202 C229 190 220 175 210 160 C217 158 225 158 234 160 C225 141 213 120 199 101 Z"/>
+    </g>
+  </g>
+
+  <g id="woodcutters-axe">
+    <path d="M76 211 L175 102" stroke="#e89f2d" stroke-width="19" stroke-linecap="round"/>
+    <path d="M169 88 C188 84 207 91 222 105 C218 120 207 134 191 143 C187 127 176 116 160 110 C161 101 164 94 169 88 Z" fill="#efe7c7"/>
+    <path d="M160 110 C172 115 181 124 187 136 C177 135 168 131 158 124 Z" fill="#d9d0ad"/>
+    <rect x="154" y="111" width="36" height="7" rx="3.5" transform="rotate(31 172 114.5)" fill="#3f7c52"/>
+  </g>
+</svg>
