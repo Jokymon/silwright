@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
-from silwright.generated_file import write_generated_file
+from silwright.generated_file import GeneratedFile, write_generated_files
 from silwright.model import Choice, Enum, Node, ParsedDefinitionFile, Trait
 from silwright.naming import cpp_name
 from silwright.parser import parse_definition_file
@@ -121,8 +121,13 @@ def generate_transformer_files(
         definition_path.with_suffix(".hpp").name,
         header_path.name,
     )
-    write_generated_file(header_path, generated.header, definition_path, generated_at)
-    write_generated_file(source_path, generated.source, definition_path, generated_at)
+    write_generated_files(
+        (
+            GeneratedFile(header_path, generated.header),
+            GeneratedFile(source_path, generated.source),
+        ),
+        definition_path,
+    )
     return header_path, source_path
 
 

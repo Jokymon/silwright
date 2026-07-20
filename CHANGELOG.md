@@ -7,6 +7,15 @@ The project follows [Semantic Versioning](https://semver.org/). Releases are ide
 
 ## [Unreleased]
 
+### Changed
+
+- Generated files now use a stable Silwright/version banner without generation timestamps.
+
+### Fixed
+
+- Render all CLI outputs before writing, write changed outputs through temporary files, and leave
+  unchanged generated files untouched so their modification timestamps are preserved.
+
 ## [0.3.0] - 2026-07-13
 
 ### Added

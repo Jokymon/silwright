@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
-from silwright.generated_file import write_generated_file
+from silwright.generated_file import GeneratedFile, write_generated_files
 from silwright.model import Choice, Enum, Field, Node, ParsedDefinitionFile, Trait
 from silwright.naming import cpp_name
 from silwright.parser import parse_definition_file
@@ -111,11 +111,14 @@ def generate_dump_files(
         header_path.name,
         implementation_path.name,
     )
-    write_generated_file(header_path, generated.header, definition_path, generated_at)
-    write_generated_file(
-        implementation_path, generated.implementation, definition_path, generated_at
+    write_generated_files(
+        (
+            GeneratedFile(header_path, generated.header),
+            GeneratedFile(implementation_path, generated.implementation),
+            GeneratedFile(source_path, generated.source),
+        ),
+        definition_path,
     )
-    write_generated_file(source_path, generated.source, definition_path, generated_at)
     return header_path, implementation_path, source_path
 
 
