@@ -175,7 +175,10 @@ embedded by value inside traits because generated traits precede complete node d
 
 ## Semantic validation
 
-Before generation, semantic analysis rejects:
+Before generation, semantic analysis rejects invalid input. Validation and generation diagnostics
+are errors-only: a failure stops the workflow, and accepted input does not produce warnings.
+
+Semantic analysis rejects:
 
 - Duplicate declarations, fields, enum entries, choice alternatives, traits, and mappings.
 - Unknown field types, traits, and choice alternatives.
