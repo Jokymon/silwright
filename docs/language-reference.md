@@ -201,6 +201,8 @@ embedded by value inside traits because generated traits precede complete node d
 
 Before generation, semantic analysis rejects invalid input. Validation and generation diagnostics
 are errors-only: a failure stops the workflow, and accepted input does not produce warnings.
+The CLI renders known failures as numbered, source-aware diagnostics with a one-based
+`file:line:column` location, source line, and caret marker.
 
 Semantic analysis rejects:
 

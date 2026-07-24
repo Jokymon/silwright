@@ -1,9 +1,16 @@
 """Generate C++ from a Silwright node definition file."""
 
 import argparse
+import sys
 from collections.abc import Sequence
 from pathlib import Path
 
+from silwright.diagnostics import (
+    DiagnosticError,
+    ErrorCode,
+    SourceLocation,
+    format_diagnostic,
+)
 from silwright.dump_generator import generate_dump_cpp
 from silwright.generated_file import GeneratedFile, write_generated_files
 from silwright.generator import generate_cpp
@@ -19,8 +26,33 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("definition", type=Path, help="path to a .ndef file")
     args = parser.parse_args(argv)
     definition: Path = args.definition
-    if definition.suffix != ".ndef":
-        parser.error("definition file must use the .ndef suffix")
+    try:
+        if definition.suffix != ".ndef":
+            raise DiagnosticError(
+                ErrorCode.INVALID_DEFINITION_SUFFIX,
+                "definition file must use the .ndef suffix",
+                SourceLocation(definition, 1, 1),
+            )
+        return _generate(definition)
+    except FileNotFoundError as error:
+        diagnostic = DiagnosticError(
+            ErrorCode.MISSING_BACKEND_MAP,
+            str(error),
+            SourceLocation(definition, 1, 1),
+        )
+    except DiagnosticError as error:
+        diagnostic = error
+    except Exception as error:
+        diagnostic = DiagnosticError(
+            ErrorCode.GENERATION_FAILED,
+            f"generation failed: {error}",
+            SourceLocation(definition, 1, 1),
+        )
+    print(format_diagnostic(diagnostic), file=sys.stderr)
+    return 1
+
+
+def _generate(definition: Path) -> int:
     validated = analyze(parse_definition_file(definition))
     stem = definition.stem
     model_header_path = definition.with_suffix(".hpp")

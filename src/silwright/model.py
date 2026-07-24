@@ -1,6 +1,8 @@
 """Syntax model for Silwright definition files."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+
+from silwright.diagnostics import SourceLocation
 
 
 @dataclass(frozen=True, slots=True)
@@ -14,6 +16,8 @@ class Field:
     optional: bool = False
     transient: bool = False
     fixed: bool = False
+    location: SourceLocation | None = field(default=None, compare=False)
+    type_location: SourceLocation | None = field(default=None, compare=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -23,6 +27,7 @@ class Node:
     name: str
     fields: tuple[Field, ...] = ()
     traits: tuple[str, ...] = ()
+    location: SourceLocation | None = field(default=None, compare=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -31,6 +36,7 @@ class Trait:
 
     name: str
     fields: tuple[Field, ...] = ()
+    location: SourceLocation | None = field(default=None, compare=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -40,6 +46,7 @@ class Choice:
     name: str
     alternatives: tuple[str, ...]
     all_traits: tuple[str, ...] = ()
+    location: SourceLocation | None = field(default=None, compare=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -48,6 +55,7 @@ class Enum:
 
     name: str
     values: tuple[str, ...]
+    location: SourceLocation | None = field(default=None, compare=False)
 
 
 type Definition = Node | Trait | Choice | Enum
@@ -59,6 +67,7 @@ class Module:
 
     name: str
     definitions: tuple[Definition, ...]
+    location: SourceLocation | None = field(default=None, compare=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -67,6 +76,7 @@ class TypeMapping:
 
     source_type: str
     cpp_type: str
+    location: SourceLocation | None = field(default=None, compare=False)
 
 
 @dataclass(frozen=True, slots=True)

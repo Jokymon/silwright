@@ -96,8 +96,9 @@ uv run silwright examples/simple_lang.ndef
 The command automatically loads the required `backend_cpp.map` from the same directory, then
 writes the model `.hpp`/`.cpp`, dump `_dump.hpp`/`_dump.ipp`/`_dump.cpp`, visitor
 `_visitor.hpp`/`_visitor.cpp`, and transformer `_transformer.hpp`/`_transformer.cpp` files
-beside `simple_lang.ndef`. Existing generated output files are replaced. Syntax errors include
-their source location.
+beside `simple_lang.ndef`. Existing generated output files are replaced. Known syntax,
+validation, and generation failures are reported as numbered diagnostics with source location,
+source line, and a caret marker.
 
 Library users can call `silwright.parse_definition_file(path)` for the same combined lookup
 behavior. `silwright.parse_definitions(text)` and `silwright.parse_type_mappings(text)` are

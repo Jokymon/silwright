@@ -7,6 +7,12 @@ The project follows [Semantic Versioning](https://semver.org/). Releases are ide
 
 ## [Unreleased]
 
+### Added
+
+- Add numbered, source-aware CLI diagnostics for syntax, semantic, missing-backend-map, and
+  generation failures. Diagnostics now include `file:line:column`, a stable `SWxxxx` error code,
+  the source line, and a caret marker instead of showing Python tracebacks for known failures.
+
 ## [0.5.0] - 2026-08-10
 
 ### Fixed

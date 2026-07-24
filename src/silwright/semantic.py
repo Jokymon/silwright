@@ -3,6 +3,7 @@
 import re
 from dataclasses import dataclass
 
+from silwright.diagnostics import DiagnosticError, ErrorCode, SourceLocation
 from silwright.model import (
     Choice,
     Definition,
@@ -35,8 +36,16 @@ _CPP_KEYWORDS = frozenset(
 )
 
 
-class SemanticError(ValueError):
+class SemanticError(DiagnosticError):
     """Raised when parsed definitions are not semantically valid."""
+
+    def __init__(
+        self,
+        message: str,
+        code: ErrorCode,
+        location: SourceLocation | None = None,
+    ) -> None:
+        super().__init__(code, message, location)
 
 
 @dataclass(frozen=True, slots=True)
@@ -109,7 +118,11 @@ def _declarations_by_name(module: Module) -> dict[str, Definition]:
     result: dict[str, Definition] = {}
     for declaration in module.definitions:
         if declaration.name in result:
-            raise SemanticError(f"duplicate definition: {declaration.name}")
+            raise SemanticError(
+                f"duplicate definition: {declaration.name}",
+                ErrorCode.DUPLICATE_DEFINITION,
+                declaration.location,
+            )
         result[declaration.name] = declaration
     return result
 
@@ -118,7 +131,11 @@ def _mappings_by_name(parsed: ParsedDefinitionFile) -> dict[str, str]:
     result: dict[str, str] = {}
     for mapping in parsed.type_mappings:
         if mapping.source_type in result:
-            raise SemanticError(f"duplicate C++ backend mapping: {mapping.source_type}")
+            raise SemanticError(
+                f"duplicate C++ backend mapping: {mapping.source_type}",
+                ErrorCode.DUPLICATE_BACKEND_MAPPING,
+                mapping.location,
+            )
         result[mapping.source_type] = mapping.cpp_type
     return result
 
@@ -126,18 +143,35 @@ def _mappings_by_name(parsed: ParsedDefinitionFile) -> dict[str, str]:
 def _validate_member_uniqueness(module: Module) -> None:
     for definition in module.definitions:
         if isinstance(definition, Enum):
-            _reject_duplicate_names(definition.name, "enum entry", definition.values)
+            _reject_duplicate_names(
+                definition.name,
+                "enum entry",
+                definition.values,
+                definition.location,
+            )
         elif isinstance(definition, Choice):
             _reject_duplicate_names(
-                definition.name, "choice alternative", definition.alternatives
+                definition.name,
+                "choice alternative",
+                definition.alternatives,
+                definition.location,
             )
 
 
-def _reject_duplicate_names(owner: str, kind: str, names: tuple[str, ...]) -> None:
+def _reject_duplicate_names(
+    owner: str,
+    kind: str,
+    names: tuple[str, ...],
+    location: SourceLocation | None = None,
+) -> None:
     seen: set[str] = set()
     for name in names:
         if name in seen:
-            raise SemanticError(f"duplicate {kind} {name!r} in {owner}")
+            raise SemanticError(
+                f"duplicate {kind} {name!r} in {owner}",
+                ErrorCode.DUPLICATE_MEMBER,
+                location,
+            )
         seen.add(name)
 
 
@@ -150,12 +184,16 @@ def _validate_modifiers(
         for field in owner.fields:
             if field.multiple and field.optional:
                 raise SemanticError(
-                    f"field {field.name!r} in {owner.name} cannot be multiple and optional"
+                    f"field {field.name!r} in {owner.name} cannot be multiple and optional",
+                    ErrorCode.INVALID_FIELD_MODIFIER,
+                    field.location,
                 )
             if field.fixed and not field.multiple:
                 raise SemanticError(
                     f"field {field.name!r} in {owner.name} cannot be fixed without "
-                    "being multiple"
+                    "being multiple",
+                    ErrorCode.INVALID_FIELD_MODIFIER,
+                    field.location,
                 )
             target = declarations.get(field.type_name)
             if isinstance(owner, Trait) and field.by_value and isinstance(
@@ -163,7 +201,9 @@ def _validate_modifiers(
             ):
                 raise SemanticError(
                     f"trait field {field.name!r} in {owner.name} cannot contain "
-                    "a node or choice by value"
+                    "a node or choice by value",
+                    ErrorCode.INVALID_FIELD_MODIFIER,
+                    field.location,
                 )
 
 
@@ -181,9 +221,17 @@ def _resolve_node_traits(
         for trait_name in trait_names:
             target = declarations.get(trait_name)
             if target is None:
-                raise SemanticError(f"unknown trait {trait_name!r} on {owner.name}")
+                raise SemanticError(
+                    f"unknown trait {trait_name!r} on {owner.name}",
+                    ErrorCode.UNKNOWN_TRAIT,
+                    owner.location,
+                )
             if not isinstance(target, Trait):
-                raise SemanticError(f"{trait_name!r} on {owner.name} is not a trait")
+                raise SemanticError(
+                    f"{trait_name!r} on {owner.name} is not a trait",
+                    ErrorCode.INVALID_TRAIT_REFERENCE,
+                    owner.location,
+                )
 
     for node in (item for item in module.definitions if isinstance(item, Node)):
         validate_traits(node, node.traits)
@@ -236,7 +284,11 @@ def _reject_duplicate_fields(owner: str, fields: tuple[Field, ...]) -> None:
     seen: set[str] = set()
     for field in fields:
         if field.name in seen:
-            raise SemanticError(f"duplicate field {field.name!r} in {owner}")
+            raise SemanticError(
+                f"duplicate field {field.name!r} in {owner}",
+                ErrorCode.DUPLICATE_FIELD,
+                field.location,
+            )
         seen.add(field.name)
 
 
@@ -253,7 +305,11 @@ def _validate_field_types(
                 continue
             target = declarations.get(field.type_name)
             if not isinstance(target, (Node, Choice, Enum)):
-                raise SemanticError(f"unknown field type {field.type_name!r} in {owner.name}")
+                raise SemanticError(
+                    f"unknown field type {field.type_name!r} in {owner.name}",
+                    ErrorCode.UNKNOWN_FIELD_TYPE,
+                    field.type_location,
+                )
 
 
 def _order_choices(
@@ -267,7 +323,11 @@ def _order_choices(
 
     def visit(item: Choice) -> None:
         if item.name in visiting:
-            raise SemanticError(f"cyclic choice dependency involving {item.name}")
+            raise SemanticError(
+                f"cyclic choice dependency involving {item.name}",
+                ErrorCode.CYCLIC_CHOICE,
+                item.location,
+            )
         if item.name in visited:
             return
         visiting.add(item.name)
@@ -275,12 +335,22 @@ def _order_choices(
             target = declarations.get(alternative)
             if target is None:
                 raise SemanticError(
-                    f"unknown choice alternative {alternative!r} in {item.name}"
+                    f"unknown choice alternative {alternative!r} in {item.name}",
+                    ErrorCode.UNKNOWN_CHOICE_ALTERNATIVE,
+                    item.location,
                 )
             if isinstance(target, Enum):
-                raise SemanticError(f"enum {alternative!r} cannot be a choice alternative")
+                raise SemanticError(
+                    f"enum {alternative!r} cannot be a choice alternative",
+                    ErrorCode.INVALID_CHOICE_ALTERNATIVE,
+                    item.location,
+                )
             if isinstance(target, Trait):
-                raise SemanticError(f"trait {alternative!r} cannot be a choice alternative")
+                raise SemanticError(
+                    f"trait {alternative!r} cannot be a choice alternative",
+                    ErrorCode.INVALID_CHOICE_ALTERNATIVE,
+                    item.location,
+                )
             if isinstance(target, Choice):
                 visit(target)
         visiting.remove(item.name)
@@ -316,7 +386,11 @@ def _order_nodes(
 
     def visit(node: Node) -> None:
         if node.name in visiting:
-            raise SemanticError(f"cyclic value dependency involving {node.name}")
+            raise SemanticError(
+                f"cyclic value dependency involving {node.name}",
+                ErrorCode.CYCLIC_VALUE_DEPENDENCY,
+                node.location,
+            )
         if node.name in visited:
             return
         visiting.add(node.name)
@@ -358,41 +432,53 @@ def _repeated_pointer_choices(
 def _validate_cpp_names(
     module: Module, repeated_pointer_choices: tuple[Choice, ...]
 ) -> None:
-    _validate_cpp_identifier("module", module.name)
-    generated: dict[str, str] = {}
+    _validate_cpp_identifier("module", module.name, module.location)
+    generated: dict[str, tuple[str, SourceLocation | None]] = {}
     for definition in module.definitions:
         generated_name = cpp_name(definition.name)
         if isinstance(definition, Enum):
             generated_name += "_t"
-        _validate_cpp_identifier(f"definition {definition.name!r}", generated_name)
+        _validate_cpp_identifier(
+            f"definition {definition.name!r}", generated_name, definition.location
+        )
         previous = generated.get(generated_name)
         if previous is not None:
+            previous_name, _previous_location = previous
             raise SemanticError(
-                f"C++ name collision: {previous!r} and {definition.name!r} "
-                f"both generate {generated_name!r}"
+                f"C++ name collision: {previous_name!r} and {definition.name!r} "
+                f"both generate {generated_name!r}",
+                ErrorCode.CPP_NAME_COLLISION,
+                definition.location,
             )
-        generated[generated_name] = definition.name
+        generated[generated_name] = (definition.name, definition.location)
 
         if isinstance(definition, (Node, Trait)):
             for field in definition.fields:
                 _validate_cpp_identifier(
-                    f"field {field.name!r} in {definition.name}", field.name
+                    f"field {field.name!r} in {definition.name}",
+                    field.name,
+                    field.location,
                 )
         elif isinstance(definition, Enum):
             for value in definition.values:
                 _validate_cpp_identifier(
-                    f"enum entry {value!r} in {definition.name}", value
+                    f"enum entry {value!r} in {definition.name}",
+                    value,
+                    definition.location,
                 )
 
     for choice in repeated_pointer_choices:
         alias_name = f"{cpp_name(choice.name)}_list"
         previous = generated.get(alias_name)
         if previous is not None:
+            previous_name, _previous_location = previous
             raise SemanticError(
                 f"C++ name collision: generated list alias for {choice.name!r} "
-                f"conflicts with {previous!r} as {alias_name!r}"
+                f"conflicts with {previous_name!r} as {alias_name!r}",
+                ErrorCode.CPP_NAME_COLLISION,
+                choice.location,
             )
-        generated[alias_name] = f"{choice.name} list alias"
+        generated[alias_name] = (f"{choice.name} list alias", choice.location)
 
     for reserved_name, description in (
         ("visitor", "generated visitor class"),
@@ -402,15 +488,27 @@ def _validate_cpp_names(
     ):
         if reserved_name in generated:
             raise SemanticError(
-                f"definition name conflicts with {description}"
+                f"definition name conflicts with {description}",
+                ErrorCode.CPP_NAME_COLLISION,
+                generated[reserved_name][1],
             )
 
 
-def _validate_cpp_identifier(subject: str, name: str) -> None:
+def _validate_cpp_identifier(
+    subject: str, name: str, location: SourceLocation | None = None
+) -> None:
     if _CPP_IDENTIFIER.fullmatch(name) is None:
-        raise SemanticError(f"{subject} generates invalid C++ identifier {name!r}")
+        raise SemanticError(
+            f"{subject} generates invalid C++ identifier {name!r}",
+            ErrorCode.INVALID_CPP_IDENTIFIER,
+            location,
+        )
     if name in _CPP_KEYWORDS:
-        raise SemanticError(f"{subject} generates reserved C++ keyword {name!r}")
+        raise SemanticError(
+            f"{subject} generates reserved C++ keyword {name!r}",
+            ErrorCode.RESERVED_CPP_KEYWORD,
+            location,
+        )
 
 
 def _visitable_definition_names(
@@ -505,7 +603,9 @@ def _transformer_return_choices(
                 raise SemanticError(
                     f"node {alternative!r} appears in multiple transformable choices "
                     f"({previous.name!r} and {choice.name!r}); transformer return type "
-                    "is ambiguous"
+                    "is ambiguous",
+                    ErrorCode.AMBIGUOUS_TRANSFORMER_RETURN,
+                    choice.location,
                 )
             result[alternative] = choice
     return result
@@ -531,5 +631,7 @@ def _validate_transformer_return_choices(
             choice = transformer_return_choices[target.name]
             raise SemanticError(
                 f"field {field.name!r} in {item.name} references node {target.name!r} "
-                f"directly, but transformer rewrites that node as choice {choice.name!r}"
+                f"directly, but transformer rewrites that node as choice {choice.name!r}",
+                ErrorCode.DIRECT_TRANSFORMER_NODE_REFERENCE,
+                field.location,
             )

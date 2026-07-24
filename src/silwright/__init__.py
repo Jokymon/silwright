@@ -1,5 +1,6 @@
 """Parse node descriptions used to generate C++ code."""
 
+from silwright.diagnostics import DiagnosticError, ErrorCode, SourceLocation
 from silwright.dump_generator import GeneratedDumpCpp, generate_dump_cpp
 from silwright.generator import GeneratedCpp, GenerationError, generate_cpp
 from silwright.model import (
@@ -15,6 +16,7 @@ from silwright.model import (
 )
 from silwright.naming import cpp_name
 from silwright.parser import (
+    ParseError,
     parse_cpp_backend_config,
     parse_definition_file,
     parse_definitions,
@@ -30,7 +32,9 @@ from silwright.visitor_generator import GeneratedVisitorCpp, generate_visitor_cp
 __all__ = [
     "Choice",
     "CppBackendConfig",
+    "DiagnosticError",
     "Enum",
+    "ErrorCode",
     "Field",
     "GeneratedCpp",
     "GeneratedDumpCpp",
@@ -40,7 +44,9 @@ __all__ = [
     "Module",
     "Node",
     "ParsedDefinitionFile",
+    "ParseError",
     "SemanticError",
+    "SourceLocation",
     "TypeMapping",
     "Trait",
     "ValidatedModel",

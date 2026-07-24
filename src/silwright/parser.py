@@ -3,7 +3,9 @@
 from pathlib import Path
 
 from lark import Lark, Token, Transformer, v_args
+from lark.exceptions import UnexpectedInput
 
+from silwright.diagnostics import DiagnosticError, ErrorCode, SourceLocation
 from silwright.model import (
     Choice,
     CppBackendConfig,
@@ -61,8 +63,16 @@ _MAP_GRAMMAR = r"""
     %ignore /#[^\r\n]*/
 """
 
-_NDEF_PARSER = Lark(_NDEF_GRAMMAR, parser="lalr")
-_MAP_PARSER = Lark(_MAP_GRAMMAR, parser="lalr")
+_NDEF_PARSER = Lark(_NDEF_GRAMMAR, parser="lalr", propagate_positions=True)
+_MAP_PARSER = Lark(_MAP_GRAMMAR, parser="lalr", propagate_positions=True)
+
+
+class ParseError(DiagnosticError):
+    """Raised when source text cannot be parsed."""
+
+
+def _location(path: Path | None, token: Token) -> SourceLocation:
+    return SourceLocation(path, token.line or 1, token.column or 1)
 
 
 def _text(token: Token) -> str:
@@ -71,8 +81,12 @@ def _text(token: Token) -> str:
 
 @v_args(inline=True)
 class _NodeTransformer(Transformer[Token, object]):
-    def module_decl(self, name: Token) -> str:
-        return _text(name)
+    def __init__(self, path: Path | None = None) -> None:
+        super().__init__()
+        self._path = path
+
+    def module_decl(self, name: Token) -> tuple[str, SourceLocation]:
+        return (_text(name), _location(self._path, name))
 
     def field(self, name: Token, *type_parts: Token) -> Field:
         type_name = _text(type_parts[-1])
@@ -85,6 +99,8 @@ class _NodeTransformer(Transformer[Token, object]):
             optional="OPTIONAL" in modifiers,
             transient="TRANSIENT" in modifiers,
             fixed="FIXED" in modifiers,
+            location=_location(self._path, name),
+            type_location=_location(self._path, type_parts[-1]),
         )
 
     def trait_list(self, *names: Token) -> tuple[str, ...]:
@@ -96,10 +112,15 @@ class _NodeTransformer(Transformer[Token, object]):
     def node_def(self, name: Token, *parts: Field | tuple[str, ...]) -> Node:
         traits = next((part for part in parts if isinstance(part, tuple)), ())
         fields = tuple(part for part in parts if isinstance(part, Field))
-        return Node(name=_text(name), fields=fields, traits=traits)
+        return Node(
+            name=_text(name),
+            fields=fields,
+            traits=traits,
+            location=_location(self._path, name),
+        )
 
     def trait_def(self, name: Token, *fields: Field) -> Trait:
-        return Trait(name=_text(name), fields=tuple(fields))
+        return Trait(name=_text(name), fields=tuple(fields), location=_location(self._path, name))
 
     def flexible_option_list(self, *names: Token) -> tuple[str, ...]:
         return tuple(map(_text, names))
@@ -113,22 +134,38 @@ class _NodeTransformer(Transformer[Token, object]):
             alternatives = parts[0]
         else:
             traits, alternatives = parts
-        return Choice(name=_text(name), alternatives=alternatives, all_traits=traits)
+        return Choice(
+            name=_text(name),
+            alternatives=alternatives,
+            all_traits=traits,
+            location=_location(self._path, name),
+        )
 
     def enum_def(self, name: Token, values: tuple[str, ...]) -> Enum:
-        return Enum(name=_text(name), values=values)
+        return Enum(name=_text(name), values=values, location=_location(self._path, name))
 
-    def start(self, module_name: str, *definitions: Definition) -> Module:
-        return Module(name=module_name, definitions=tuple(definitions))
+    def start(
+        self, module_data: tuple[str, SourceLocation], *definitions: Definition
+    ) -> Module:
+        module_name, location = module_data
+        return Module(name=module_name, definitions=tuple(definitions), location=location)
 
 
 @v_args(inline=True)
 class _MappingTransformer(Transformer[Token, object]):
+    def __init__(self, path: Path | None = None) -> None:
+        super().__init__()
+        self._path = path
+
     def include(self, spelling: Token) -> str:
         return _text(spelling)
 
     def mapping(self, source_type: Token, cpp_type: Token) -> TypeMapping:
-        return TypeMapping(source_type=_text(source_type), cpp_type=_text(cpp_type).strip())
+        return TypeMapping(
+            source_type=_text(source_type),
+            cpp_type=_text(cpp_type).strip(),
+            location=_location(self._path, source_type),
+        )
 
     def start(self, *entries: TypeMapping | str) -> CppBackendConfig:
         return CppBackendConfig(
@@ -137,9 +174,9 @@ class _MappingTransformer(Transformer[Token, object]):
         )
 
 
-def parse_definitions(source: str) -> Module:
+def parse_definitions(source: str, path: Path | None = None) -> Module:
     """Parse the contents of one .ndef file."""
-    result = _NodeTransformer().transform(_NDEF_PARSER.parse(_terminated(source)))
+    result = _NodeTransformer(path).transform(_NDEF_PARSER.parse(_terminated(source)))
     assert isinstance(result, Module)
     return result
 
@@ -149,9 +186,11 @@ def parse_type_mappings(source: str) -> tuple[TypeMapping, ...]:
     return parse_cpp_backend_config(source).type_mappings
 
 
-def parse_cpp_backend_config(source: str) -> CppBackendConfig:
+def parse_cpp_backend_config(
+    source: str, path: Path | None = None
+) -> CppBackendConfig:
     """Parse mappings and include directives from backend_cpp.map content."""
-    result = _MappingTransformer().transform(_MAP_PARSER.parse(_terminated(source)))
+    result = _MappingTransformer(path).transform(_MAP_PARSER.parse(_terminated(source)))
     assert isinstance(result, CppBackendConfig)
     return result
 
@@ -162,8 +201,17 @@ def parse_definition_file(path: Path) -> ParsedDefinitionFile:
         raise ValueError(f"definition file must use the .ndef suffix: {path}")
 
     mapping_path = path.parent / "backend_cpp.map"
-    module = parse_definitions(path.read_text(encoding="utf-8"))
-    backend = parse_cpp_backend_config(mapping_path.read_text(encoding="utf-8"))
+    definition_source = path.read_text(encoding="utf-8")
+    try:
+        module = parse_definitions(definition_source, path)
+    except UnexpectedInput as error:
+        raise _parse_error(path, definition_source, error) from error
+
+    mapping_source = mapping_path.read_text(encoding="utf-8")
+    try:
+        backend = parse_cpp_backend_config(mapping_source, mapping_path)
+    except UnexpectedInput as error:
+        raise _parse_error(mapping_path, mapping_source, error) from error
     return ParsedDefinitionFile(
         module=module,
         type_mappings=backend.type_mappings,
@@ -174,3 +222,14 @@ def parse_definition_file(path: Path) -> ParsedDefinitionFile:
 def _terminated(source: str) -> str:
     """Normalize the grammar's line-oriented input terminator."""
     return source if source.endswith(("\n", "\r")) else f"{source}\n"
+
+
+def _parse_error(path: Path, source: str, error: UnexpectedInput) -> ParseError:
+    line = error.line if error.line is not None else 1
+    column = error.column if error.column is not None else 1
+    return ParseError(
+        ErrorCode.SYNTAX_ERROR,
+        "invalid syntax",
+        SourceLocation(path, line, column),
+        context=error.get_context(source),
+    )
