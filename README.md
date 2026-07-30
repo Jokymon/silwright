@@ -185,6 +185,9 @@ end
 - `node` declares a future C++ struct. Each field is written as `<name>: <type>`.
 - `trait` declares reusable fields. A node applies one or more traits with
   `node FunctionHead with Location, Documented`; generated traits are public base structs.
+- A choice applies traits to all transitively reachable node alternatives with
+  `choice Expr allwith Location, Attributes`. This changes those generated node types globally,
+  including uses outside the choice; overlapping applications are deduplicated.
 - Prefixing a field type with `*`, as in `code: *Expr`, makes it a repeated field.
 - Prefixing a repeated field with `fixed`, as in `arguments: fixed *Expr`, preserves the field's
   element count in generated transformers. It uses the same C++ storage as `*Expr`.
@@ -257,9 +260,10 @@ This section is maintained as requirements are discovered or changed during deve
 - Definition names are converted from CamelCase to snake_case. Enum names additionally use
   a `_t` suffix. Enum fields are scalar; node and choice fields use `std::unique_ptr`; built-in
   fields use their mapped C++ spelling.
-- Traits generate public base structs and do not participate in choices or visitor traversal.
-  Trait fields are flattened into node dump output. Unknown traits, duplicate applications,
-  and inherited/local field-name collisions are rejected before C++ is emitted.
+- Traits generate public base structs and do not participate in visitor traversal. Choices can
+  propagate traits transitively to their node alternatives with `allwith`. Trait fields are
+  flattened into node dump output. Repeated applications are deduplicated; unknown traits and
+  inherited/local field-name collisions are rejected before C++ is emitted.
 - Transient fields hold tooling or later-stage state that belongs on the in-memory node but is
   not part of its structural representation. They are generated normally but omitted from
   dump output and visitor child traversal.

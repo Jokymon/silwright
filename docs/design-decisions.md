@@ -251,7 +251,8 @@ be reconsidered later if the invariant needs to be enforced outside generated tr
 
 ## Reusable node traits
 
-Reusable data-bearing characteristics use `trait` declarations and node-level `with` lists:
+Reusable data-bearing characteristics use `trait` declarations, node-level `with` lists, and
+choice-level `allwith` lists:
 
 ```text
 trait Location
@@ -261,18 +262,29 @@ end
 node FunctionHead with Location
     name: identifier
 end
+
+choice Expr allwith Location
+    Name | Literal | FunctionHead
+end
 ```
 
 Traits generate public C++ base structs, while nodes generate public inheritance from each
-listed trait. Traits cannot inherit, appear in choices, or receive visitor overloads. Their
-fields are flattened into the derived node's dump output. Generation rejects unknown or
-repeated traits and any field-name collision among applied traits and local node fields.
+effective trait. `allwith` applies its traits to all transitively reachable node alternatives;
+the choice remains a `std::variant` alias and does not itself inherit or store common members.
+Because node types are global, propagation also affects uses of those nodes outside the choice.
+Explicit and propagated traits remain separate in the parsed model and semantic analysis
+computes effective node traits. Explicit traits come first, followed by propagated traits in
+choice declaration and `allwith` list order. Overlapping applications are deduplicated at their
+first occurrence. Traits cannot inherit, appear as choice alternatives, or receive visitor
+overloads. Their fields are flattened into the derived node's dump output. Generation rejects
+unknown traits and any field-name collision among effective traits and local node fields.
 
 `trait` was selected over `interface` because traits carry data, and over `concept` because
 that term has a distinct C++ meaning. `with` reads as capability application without suggesting
-ordinary field composition. The trait can use a natural characteristic name such as `Location`;
-this does not conflict with its lowercase `location` field because type and member names occupy
-different generated contexts.
+ordinary field composition. `allwith` makes the choice-wide, transitive application explicit
+without implying that the variant itself contains the trait. The trait can use a natural
+characteristic name such as `Location`; this does not conflict with its lowercase `location`
+field because type and member names occupy different generated contexts.
 
 ## Transient tooling fields
 

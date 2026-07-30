@@ -5,7 +5,7 @@ Basic Visual Studio Code language support for Silwright `.ndef` and `backend_cpp
 ## Features
 
 - TextMate syntax highlighting for `module`, `node`, `trait`, `choice`, `enum`, `end`, `value`,
-  `transient`, `fixed`, and `with`
+  `transient`, `fixed`, `with`, and `allwith`
 - Highlighting for `*` and `|` operators and `//` line comments
 - Declaration-name and field-name highlighting
 - Basic highlighting for `backend_cpp.map` mappings and `@include` directives

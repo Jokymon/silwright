@@ -1,5 +1,9 @@
 # Change Log
 
+## Unreleased
+
+- Highlight the `allwith` choice-trait keyword.
+
 ## 0.7.0 - 2026-07-15
 
 - Declare workspace trust and virtual workspace capabilities for Marketplace metadata.

@@ -107,6 +107,26 @@ def test_choice_options_allow_flexible_line_breaks(options: str) -> None:
     )
 
 
+def test_choice_allwith_traits_are_parsed_separately() -> None:
+    source = """\
+module example
+choice Expr allwith Location, Attributes
+    Variable | Number
+end
+"""
+
+    assert parse_definitions(source) == Module(
+        "example",
+        (
+            Choice(
+                "Expr",
+                ("Variable", "Number"),
+                all_traits=("Location", "Attributes"),
+            ),
+        ),
+    )
+
+
 def test_choice_rejects_separator_without_following_option() -> None:
     with pytest.raises(UnexpectedInput):
         parse_definitions("module example\nchoice Expr\n    Variable |\nend\n")

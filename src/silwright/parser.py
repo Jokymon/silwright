@@ -26,7 +26,8 @@ _NDEF_GRAMMAR = r"""
     trait_def: "trait" NAME _NL+ field* "end" _NL+
     trait_list: "with" NAME ("," NAME)*
     field: NAME ":" FIXED? (STAR | OPTIONAL)? VALUE? TRANSIENT? NAME _NL+
-    choice_def: "choice" NAME _NL+ choice_option_list _NL+ "end" _NL+
+    choice_def: "choice" NAME all_trait_list? _NL+ choice_option_list _NL+ "end" _NL+
+    all_trait_list: "allwith" NAME ("," NAME)*
     enum_def: "enum" NAME _NL+ flexible_option_list _NL+ "end" _NL+
     choice_option_list: flexible_option_list
     flexible_option_list: NAME (_CHOICE_SEPARATOR NAME)*
@@ -89,6 +90,9 @@ class _NodeTransformer(Transformer[Token, object]):
     def trait_list(self, *names: Token) -> tuple[str, ...]:
         return tuple(map(_text, names))
 
+    def all_trait_list(self, *names: Token) -> tuple[str, ...]:
+        return tuple(map(_text, names))
+
     def node_def(self, name: Token, *parts: Field | tuple[str, ...]) -> Node:
         traits = next((part for part in parts if isinstance(part, tuple)), ())
         fields = tuple(part for part in parts if isinstance(part, Field))
@@ -103,8 +107,13 @@ class _NodeTransformer(Transformer[Token, object]):
     def choice_option_list(self, names: tuple[str, ...]) -> tuple[str, ...]:
         return names
 
-    def choice_def(self, name: Token, alternatives: tuple[str, ...]) -> Choice:
-        return Choice(name=_text(name), alternatives=alternatives)
+    def choice_def(self, name: Token, *parts: tuple[str, ...]) -> Choice:
+        if len(parts) == 1:
+            traits: tuple[str, ...] = ()
+            alternatives = parts[0]
+        else:
+            traits, alternatives = parts
+        return Choice(name=_text(name), alternatives=alternatives, all_traits=traits)
 
     def enum_def(self, name: Token, values: tuple[str, ...]) -> Enum:
         return Enum(name=_text(name), values=values)

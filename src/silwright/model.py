@@ -35,10 +35,11 @@ class Trait:
 
 @dataclass(frozen=True, slots=True)
 class Choice:
-    """A sum type whose alternatives refer to other declared types."""
+    """A sum type with optional traits propagated to its node alternatives."""
 
     name: str
     alternatives: tuple[str, ...]
+    all_traits: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)

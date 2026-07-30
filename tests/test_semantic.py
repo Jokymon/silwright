@@ -64,6 +64,37 @@ def test_all_generators_accept_one_validated_model() -> None:
     ).header
 
 
+def test_choice_allwith_traits_apply_transitively_and_are_deduplicated() -> None:
+    parsed = ParsedDefinitionFile(
+        Module(
+            "syntax",
+            (
+                Trait("Location", (Field("location", "index"),)),
+                Trait("Attributes", (Field("attributes", "index"),)),
+                Node("Leaf", traits=("Location",)),
+                Node("Other"),
+                Choice("Atom", ("Leaf", "Other"), all_traits=("Location",)),
+                Choice(
+                    "Expr",
+                    ("Atom",),
+                    all_traits=("Location", "Attributes", "Attributes"),
+                ),
+            ),
+        ),
+        (TypeMapping("index", "std::size_t"),),
+    )
+
+    validated = analyze(parsed)
+
+    assert validated.node_traits == {
+        "Leaf": ("Location", "Attributes"),
+        "Other": ("Location", "Attributes"),
+    }
+    header = generate_cpp(validated, "syntax.hpp").header
+    assert "struct leaf : public location, public attributes" in header
+    assert "struct other : public location, public attributes" in header
+
+
 @pytest.mark.parametrize(
     ("parsed", "message"),
     (
@@ -179,16 +210,6 @@ def test_all_generators_accept_one_validated_model() -> None:
         ),
         (
             ParsedDefinitionFile(
-                Module(
-                    "bad",
-                    (Trait("Metadata"), Node("Item", traits=("Metadata", "Metadata"))),
-                ),
-                (),
-            ),
-            "duplicate trait on Item",
-        ),
-        (
-            ParsedDefinitionFile(
                 Module("bad", (Node("Base"), Node("Item", traits=("Base",)))), ()
             ),
             "'Base' on Item is not a trait",
@@ -211,3 +232,38 @@ def test_analysis_rejects_invalid_models(
 ) -> None:
     with pytest.raises(SemanticError, match=re.escape(message)):
         analyze(parsed)
+
+
+def test_choice_allwith_rejects_unknown_and_non_trait_names() -> None:
+    with pytest.raises(SemanticError, match="unknown trait 'Missing' on Expr"):
+        analyze(
+            ParsedDefinitionFile(
+                Module("bad", (Node("Leaf"), Choice("Expr", ("Leaf",), ("Missing",)))),
+                (),
+            )
+        )
+
+    with pytest.raises(SemanticError, match="'Leaf' on Expr is not a trait"):
+        analyze(
+            ParsedDefinitionFile(
+                Module("bad", (Node("Leaf"), Choice("Expr", ("Leaf",), ("Leaf",)))),
+                (),
+            )
+        )
+
+
+def test_choice_allwith_participates_in_field_collision_validation() -> None:
+    with pytest.raises(SemanticError, match="duplicate field 'location' in Leaf"):
+        analyze(
+            ParsedDefinitionFile(
+                Module(
+                    "bad",
+                    (
+                        Trait("Location", (Field("location", "index"),)),
+                        Node("Leaf", (Field("location", "index"),)),
+                        Choice("Expr", ("Leaf",), ("Location",)),
+                    ),
+                ),
+                (TypeMapping("index", "int"),),
+            )
+        )

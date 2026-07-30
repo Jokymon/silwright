@@ -47,7 +47,7 @@
       "patterns": [
         {
           "name": "keyword.control.ndef",
-          "match": "\\b(?:module|node|trait|choice|enum|end|value|transient|fixed|with)\\b"
+          "match": "\\b(?:module|node|trait|choice|enum|end|value|transient|fixed|with|allwith)\\b"
         }
       ]
     },

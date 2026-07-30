@@ -46,6 +46,7 @@ class ValidatedModel:
     parsed: ParsedDefinitionFile
     declarations: dict[str, Definition]
     mappings: dict[str, str]
+    node_traits: dict[str, tuple[str, ...]]
     node_fields: dict[str, tuple[Field, ...]]
     ordered_choices: tuple[Choice, ...]
     repeated_pointer_choices: tuple[Choice, ...]
@@ -65,9 +66,10 @@ def analyze(parsed: ParsedDefinitionFile) -> ValidatedModel:
     mappings = _mappings_by_name(parsed)
     _validate_member_uniqueness(parsed.module)
     _validate_modifiers(parsed.module, declarations)
-    node_fields = _resolve_node_fields(parsed.module, declarations)
     _validate_field_types(parsed.module, declarations, mappings)
     ordered_choices = _order_choices(parsed.module, declarations)
+    node_traits = _resolve_node_traits(parsed.module, declarations)
+    node_fields = _resolve_node_fields(parsed.module, declarations, node_traits)
     repeated_pointer_choices = _repeated_pointer_choices(
         parsed.module, declarations, ordered_choices
     )
@@ -87,6 +89,7 @@ def analyze(parsed: ParsedDefinitionFile) -> ValidatedModel:
         parsed=parsed,
         declarations=declarations,
         mappings=mappings,
+        node_traits=node_traits,
         node_fields=node_fields,
         ordered_choices=ordered_choices,
         repeated_pointer_choices=repeated_pointer_choices,
@@ -164,9 +167,52 @@ def _validate_modifiers(
                 )
 
 
+def _resolve_node_traits(
+    module: Module,
+    declarations: dict[str, Definition],
+) -> dict[str, tuple[str, ...]]:
+    result = {
+        node.name: list(dict.fromkeys(node.traits))
+        for node in module.definitions
+        if isinstance(node, Node)
+    }
+
+    def validate_traits(owner: Node | Choice, trait_names: tuple[str, ...]) -> None:
+        for trait_name in trait_names:
+            target = declarations.get(trait_name)
+            if target is None:
+                raise SemanticError(f"unknown trait {trait_name!r} on {owner.name}")
+            if not isinstance(target, Trait):
+                raise SemanticError(f"{trait_name!r} on {owner.name} is not a trait")
+
+    for node in (item for item in module.definitions if isinstance(item, Node)):
+        validate_traits(node, node.traits)
+
+    def add_choice_traits(
+        choice: Choice, traits: tuple[str, ...], visited: set[str]
+    ) -> None:
+        if choice.name in visited:
+            return
+        visited.add(choice.name)
+        for alternative in choice.alternatives:
+            target = declarations.get(alternative)
+            if isinstance(target, Node):
+                effective = result[target.name]
+                effective.extend(trait for trait in traits if trait not in effective)
+            elif isinstance(target, Choice):
+                add_choice_traits(target, traits, visited)
+
+    for choice in (item for item in module.definitions if isinstance(item, Choice)):
+        validate_traits(choice, choice.all_traits)
+        add_choice_traits(choice, tuple(dict.fromkeys(choice.all_traits)), set())
+
+    return {name: tuple(traits) for name, traits in result.items()}
+
+
 def _resolve_node_fields(
     module: Module,
     declarations: dict[str, Definition],
+    node_traits: dict[str, tuple[str, ...]],
 ) -> dict[str, tuple[Field, ...]]:
     traits = {item.name: item for item in module.definitions if isinstance(item, Trait)}
     for trait in traits.values():
@@ -174,15 +220,10 @@ def _resolve_node_fields(
 
     result: dict[str, tuple[Field, ...]] = {}
     for node in (item for item in module.definitions if isinstance(item, Node)):
-        if len(set(node.traits)) != len(node.traits):
-            raise SemanticError(f"duplicate trait on {node.name}")
         fields: list[Field] = []
-        for trait_name in node.traits:
-            target = declarations.get(trait_name)
-            if target is None:
-                raise SemanticError(f"unknown trait {trait_name!r} on {node.name}")
-            if not isinstance(target, Trait):
-                raise SemanticError(f"{trait_name!r} on {node.name} is not a trait")
+        for trait_name in node_traits[node.name]:
+            target = declarations[trait_name]
+            assert isinstance(target, Trait)
             fields.extend(target.fields)
         fields.extend(node.fields)
         flattened = tuple(fields)

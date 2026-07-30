@@ -67,7 +67,7 @@ def generate_cpp(
                     item.fields,
                     declarations,
                     mappings,
-                    item.traits,
+                    validated.node_traits[item.name],
                 )
                 for item in ordered_nodes
             )

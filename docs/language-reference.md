@@ -27,7 +27,7 @@ lines are allowed inside bodies.
 The language keywords are:
 
 ```text
-module node trait choice enum end with value transient fixed
+module node trait choice enum end with allwith value transient fixed
 ```
 
 `*`, `?`, `:`, `|`, and `,` are syntax operators or separators. Keywords are contextual in
@@ -56,8 +56,9 @@ field         = name, ":",
                 [ "fixed" ], [ "*" | "?" ], [ "value" ], [ "transient" ],
                 name, newline ;
 
-choice        = "choice", name, newline,
+choice        = "choice", name, [ all-trait-list ], newline,
                 option-list, newline, "end", newline ;
+all-trait-list = "allwith", name, { ",", name } ;
 
 enum          = "enum", name, newline,
                 option-list, newline, "end", newline ;
@@ -124,7 +125,7 @@ function_scope: transient scope
 ## Choices
 
 ```text
-choice Expr
+choice Expr allwith Location, Attributes
     Number | BinaryExpression
     | FunctionCall
 end
@@ -132,6 +133,13 @@ end
 
 A choice generates a `snake_case` `std::variant` alias. Alternatives must resolve to nodes or
 other choices. Choice aliases are dependency-ordered; cyclic choice aliases are invalid.
+
+An `allwith` list applies its traits to every node reachable through the choice alternatives.
+Propagation is transitive through nested choices and changes the generated node types globally,
+including uses of those nodes outside the annotated choice. Explicit node traits are ordered
+before inferred choice traits; inferred traits follow choice declaration order and their order
+within each `allwith` list. Repeated applications, including overlap with an explicit `with`,
+are deduplicated at the first occurrence.
 
 When a choice is used by at least one repeated, pointer-backed field such as `code: *Expr`, the
 C++ backend also generates one reusable list alias:
@@ -167,10 +175,11 @@ node FunctionHead with Location
 end
 ```
 
-A trait generates a public C++ base struct. Nodes may apply one or more comma-separated traits.
-Traits cannot inherit, appear in choices, or receive visitor overloads. Trait fields are
-flattened into derived-node dump output. Duplicate applications and field collisions across
-traits and local fields are invalid. Structured node or choice values cannot currently be
+A trait generates a public C++ base struct. Nodes may apply one or more comma-separated traits,
+and choices may propagate them with `allwith`. Traits cannot inherit, appear as choice
+alternatives, or receive visitor overloads. Trait fields are flattened into derived-node dump
+output. Repeated applications are deduplicated; field collisions across traits and local fields
+are invalid. Structured node or choice values cannot currently be
 embedded by value inside traits because generated traits precede complete node definitions.
 
 ## Semantic validation
@@ -180,7 +189,7 @@ are errors-only: a failure stops the workflow, and accepted input does not produ
 
 Semantic analysis rejects:
 
-- Duplicate declarations, fields, enum entries, choice alternatives, traits, and mappings.
+- Duplicate declarations, fields, enum entries, choice alternatives, and mappings.
 - Unknown field types, traits, and choice alternatives.
 - Traits used as ordinary field types or choice alternatives.
 - Invalid modifier combinations.
