@@ -3,7 +3,15 @@
 [![Documentation](https://img.shields.io/badge/docs-GitHub%20Pages-blue?logo=github)](https://jokymon.github.io/silwright/)
 [![PyPI](https://img.shields.io/pypi/v/silwright)](https://pypi.org/project/silwright/)
 
-Silwright parses declarative node descriptions and generates C++ data types.
+Silwright is a tool to work with programming language independent definitions of node
+tree structures. The goal is, to be able to focus tree structure definitions to the
+very essence of these trees rather than having to deal with programming language
+specific details. The definitions and the generated code are intended for use in
+compilers as the foundation of AST and IR structures. However other use cases might
+be feasible as well.
+
+The current implementation also features a converter to turns such definitions into
+C++ code. 
 
 ## Installation
 
