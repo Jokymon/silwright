@@ -300,6 +300,8 @@ def test_allwith_generates_recursive_mutable_and_const_trait_accessors() -> None
     assert "Trait& as_trait(std::variant<Alternatives...>& value)" in header
     assert "const Trait& as_trait(const std::variant<Alternatives...>& value)" in header
     assert "return as_trait_impl<Trait>(alternative);" in header
+    assert "static_cast" not in header
+    assert header.count("    return value;") == 2
     assert header.index("using expr =") < header.index("Trait& as_trait(")
 
 

@@ -150,12 +150,12 @@ const Trait& as_trait_impl(const std::variant<Alternatives...>& value);
 
 template <class Trait, class Value>
 Trait& as_trait_impl(Value& value) {
-    return static_cast<Trait&>(value);
+    return value;
 }
 
 template <class Trait, class Value>
 const Trait& as_trait_impl(const Value& value) {
-    return static_cast<const Trait&>(value);
+    return value;
 }
 
 template <class Trait, class... Alternatives>
