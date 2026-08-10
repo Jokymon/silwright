@@ -20,6 +20,8 @@ The project follows [Semantic Versioning](https://semver.org/). Releases are ide
 
 - Add transitive choice trait propagation with `choice Name allwith Trait`, including
   deterministic deduplication with explicit and overlapping trait applications.
+- Generate mutable and const `as_trait<Trait>(choice)` accessors for traits shared through
+  `allwith`, including recursive access through nested choices.
 - Highlight the `allwith` keyword in the VS Code extension.
 
 ## [0.3.0] - 2026-07-13

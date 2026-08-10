@@ -279,6 +279,11 @@ first occurrence. Traits cannot inherit, appear as choice alternatives, or recei
 overloads. Their fields are flattened into the derived node's dump output. Generation rejects
 unknown traits and any field-name collision among effective traits and local node fields.
 
+Generated model headers containing an `allwith` choice provide `as_trait<Trait>(choice)` mutable
+and const function templates. These recursively visit nested `std::variant` choices and cast the
+concrete node to its public trait base. The first implementation deliberately leaves validity to
+template instantiation: it does not constrain the accessor to traits guaranteed by the choice.
+
 `trait` was selected over `interface` because traits carry data, and over `concept` because
 that term has a distinct C++ meaning. `with` reads as capability application without suggesting
 ordinary field composition. `allwith` makes the choice-wide, transitive application explicit

@@ -394,10 +394,15 @@ def _validate_cpp_names(
             )
         generated[alias_name] = f"{choice.name} list alias"
 
-    for generated_class in ("visitor", "transformer"):
-        if generated_class in generated:
+    for reserved_name, description in (
+        ("visitor", "generated visitor class"),
+        ("transformer", "generated transformer class"),
+        ("as_trait", "generated trait accessor"),
+        ("as_trait_detail", "generated trait accessor implementation namespace"),
+    ):
+        if reserved_name in generated:
             raise SemanticError(
-                f"definition name conflicts with generated {generated_class} class"
+                f"definition name conflicts with {description}"
             )
 
 

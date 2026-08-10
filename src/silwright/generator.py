@@ -51,6 +51,8 @@ def generate_cpp(
         )
     if choices:
         sections.append("\n\n".join(_render_choice(item, declarations) for item in choices))
+    if any(choice.all_traits for choice in choices):
+        sections.append(_render_trait_accessors())
     if validated.repeated_pointer_choices:
         sections.append(
             "\n\n".join(
@@ -135,6 +137,54 @@ def _render_choice(
 def _render_choice_list_alias(item: Choice) -> str:
     name = cpp_name(item.name)
     return f"using {name}_list = std::vector<std::unique_ptr<{name}>>;"
+
+
+def _render_trait_accessors() -> str:
+    return """namespace as_trait_detail {
+
+template <class Trait, class... Alternatives>
+Trait& as_trait_impl(std::variant<Alternatives...>& value);
+
+template <class Trait, class... Alternatives>
+const Trait& as_trait_impl(const std::variant<Alternatives...>& value);
+
+template <class Trait, class Value>
+Trait& as_trait_impl(Value& value) {
+    return static_cast<Trait&>(value);
+}
+
+template <class Trait, class Value>
+const Trait& as_trait_impl(const Value& value) {
+    return static_cast<const Trait&>(value);
+}
+
+template <class Trait, class... Alternatives>
+Trait& as_trait_impl(std::variant<Alternatives...>& value) {
+    return std::visit(
+        [](auto& alternative) -> Trait& { return as_trait_impl<Trait>(alternative); },
+        value);
+}
+
+template <class Trait, class... Alternatives>
+const Trait& as_trait_impl(const std::variant<Alternatives...>& value) {
+    return std::visit(
+        [](const auto& alternative) -> const Trait& {
+            return as_trait_impl<Trait>(alternative);
+        },
+        value);
+}
+
+}  // namespace as_trait_detail
+
+template <class Trait, class... Alternatives>
+Trait& as_trait(std::variant<Alternatives...>& value) {
+    return as_trait_detail::as_trait_impl<Trait>(value);
+}
+
+template <class Trait, class... Alternatives>
+const Trait& as_trait(const std::variant<Alternatives...>& value) {
+    return as_trait_detail::as_trait_impl<Trait>(value);
+}"""
 
 
 def _render_struct(

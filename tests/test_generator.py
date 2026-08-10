@@ -281,6 +281,43 @@ def test_traits_generate_bases_and_inherited_fields() -> None:
     assert header.count("project::source_range location;") == 1
 
 
+def test_allwith_generates_recursive_mutable_and_const_trait_accessors() -> None:
+    parsed = ParsedDefinitionFile(
+        Module(
+            "example",
+            (
+                Trait("Location", (Field("location", "source_range"),)),
+                Node("Leaf"),
+                Choice("Primary", ("Leaf",)),
+                Choice("Expr", ("Primary",), all_traits=("Location",)),
+            ),
+        ),
+        (TypeMapping("source_range", "int"),),
+    )
+
+    header = generate_cpp(parsed, "example.hpp").header
+
+    assert "Trait& as_trait(std::variant<Alternatives...>& value)" in header
+    assert "const Trait& as_trait(const std::variant<Alternatives...>& value)" in header
+    assert "return as_trait_impl<Trait>(alternative);" in header
+    assert header.index("using expr =") < header.index("Trait& as_trait(")
+
+
+def test_trait_accessor_is_omitted_without_allwith() -> None:
+    parsed = ParsedDefinitionFile(
+        Module("example", (Node("Leaf"), Choice("Expr", ("Leaf",)))), ()
+    )
+
+    assert "as_trait" not in generate_cpp(parsed, "example.hpp").header
+
+
+def test_as_trait_name_is_reserved() -> None:
+    parsed = ParsedDefinitionFile(Module("bad", (Node("AsTrait"),)), ())
+
+    with pytest.raises(GenerationError, match="conflicts with generated trait accessor"):
+        generate_cpp(parsed, "bad.hpp")
+
+
 def test_trait_field_collisions_are_rejected() -> None:
     parsed = ParsedDefinitionFile(
         Module(

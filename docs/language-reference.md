@@ -141,6 +141,21 @@ before inferred choice traits; inferred traits follow choice declaration order a
 within each `allwith` list. Repeated applications, including overlap with an explicit `with`,
 are deduplicated at the first occurrence.
 
+When a module contains an `allwith` choice, the generated model header also provides
+`as_trait<Trait>(choice)`. It recursively unwraps nested choices and returns a mutable or const
+reference to the requested trait, matching the choice argument:
+
+```cpp
+expr& value = /* ... */;
+as_trait<location>(value).location = source_range{};
+
+const expr& const_value = value;
+const location& where = as_trait<location>(const_value);
+```
+
+The accessor assumes that the requested trait is present on every reachable node. Requesting a
+trait that is not common to the choice produces a C++ template compilation error.
+
 When a choice is used by at least one repeated, pointer-backed field such as `code: *Expr`, the
 C++ backend also generates one reusable list alias:
 
