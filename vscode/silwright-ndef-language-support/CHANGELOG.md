@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.9.0 - 2026-08-10
+
+- Synchronize the extension manifest version so the complete extension can be released after the
+  incomplete `vscode-v0.8.0` release attempt.
+
 ## 0.8.0 - 2026-08-10
 
 - Highlight the `allwith` choice-trait keyword.

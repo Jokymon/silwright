@@ -2,7 +2,7 @@
   "name": "silwright-ndef-language-support",
   "displayName": "Silwright NDEF Language Support",
   "description": "Syntax highlighting and editor support for Silwright node definition files.",
-  "version": "0.7.0",
+  "version": "0.9.0",
   "publisher": "silvan-wegmann",
   "author": "Silvan Wegmann",
   "license": "MIT",

@@ -7,6 +7,13 @@ The project follows [Semantic Versioning](https://semver.org/). Releases are ide
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-08-10
+
+### Fixed
+
+- Synchronize the project version, lockfile, and checked-in generated examples so the complete
+  package can be published after the incomplete `v0.4.0` release attempt.
+
 ## [0.4.0] - 2026-08-10
 
 ### Changed
@@ -62,7 +69,8 @@ The project follows [Semantic Versioning](https://semver.org/). Releases are ide
 - Example language definition and end-to-end C++ example.
 - Visual Studio Code language support for `.ndef` files.
 
-[Unreleased]: https://github.com/Jokymon/silwright/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/Jokymon/silwright/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/Jokymon/silwright/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/Jokymon/silwright/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/Jokymon/silwright/releases/tag/v0.3.0
 [0.2.0]: https://github.com/Jokymon/silwright/releases/tag/v0.2.0
