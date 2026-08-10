@@ -2,8 +2,10 @@ const assert = require("node:assert/strict");
 const test = require("node:test");
 const {
   findBackendMappings,
+  findChoiceAlternativeReferences,
   findDeclarations,
   findFieldTypeReferences,
+  findTypeReferences,
 } = require("../src/symbols");
 
 test("finds node, trait, choice, and enum declaration names", () => {
@@ -68,6 +70,52 @@ test("finds field type references with modifiers", () => {
   for (const reference of references) {
     assert.equal(text.slice(reference.start, reference.end), reference.name);
   }
+});
+
+test("finds choice alternative references with flexible separators", () => {
+  const text = [
+    "choice Expr",
+    "    Number |",
+    "    StringLiteral",
+    "    | FunctionCall // ignored: FakeAlternative",
+    "end",
+    "enum Op",
+    "    Add | Subtract",
+    "end",
+  ].join("\n");
+
+  const references = findChoiceAlternativeReferences(text);
+
+  assert.deepEqual(
+    references.map((reference) => reference.name),
+    ["Number", "StringLiteral", "FunctionCall"],
+  );
+  for (const reference of references) {
+    assert.equal(reference.kind, "choiceAlternative");
+    assert.equal(text.slice(reference.start, reference.end), reference.name);
+  }
+});
+
+test("combines field and choice type references in source order", () => {
+  const text = [
+    "node Root",
+    "    child: Expr",
+    "end",
+    "choice Expr",
+    "    Leaf | Branch",
+    "end",
+  ].join("\n");
+
+  const references = findTypeReferences(text);
+
+  assert.deepEqual(
+    references.map((reference) => [reference.name, reference.kind]),
+    [
+      ["Expr", "field"],
+      ["Leaf", "choiceAlternative"],
+      ["Branch", "choiceAlternative"],
+    ],
+  );
 });
 
 test("finds backend map mappings", () => {

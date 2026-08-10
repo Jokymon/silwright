@@ -3,7 +3,7 @@ const path = require("node:path");
 const {
   findBackendMappings,
   findDeclarations,
-  findFieldTypeReferences,
+  findTypeReferences,
 } = require("./src/symbols");
 
 const legend = new vscode.SemanticTokensLegend(
@@ -60,7 +60,7 @@ function activate(context) {
       async provideDocumentSemanticTokens(document) {
         const builder = new vscode.SemanticTokensBuilder(legend);
         const declarations = findDeclarations(document.getText());
-        const references = findFieldTypeReferences(document.getText());
+        const references = findTypeReferences(document.getText());
         const map = await readBackendMap(document);
 
         for (const declaration of declarations.values()) {
@@ -78,7 +78,7 @@ function activate(context) {
               "type",
               [],
             );
-          } else if (map.mappings.has(reference.name)) {
+          } else if (reference.kind === "field" && map.mappings.has(reference.name)) {
             builder.push(
               rangeFromOffsets(document, reference.start, reference.end),
               "type",
@@ -137,19 +137,25 @@ module.exports = { activate, deactivate };
  */
 async function refreshDiagnostics(document, diagnostics) {
   const declarations = findDeclarations(document.getText());
-  const references = findFieldTypeReferences(document.getText());
+  const references = findTypeReferences(document.getText());
   const map = await readBackendMap(document);
   const nextDiagnostics = [];
 
   for (const reference of references) {
-    if (declarations.has(reference.name) || map.mappings.has(reference.name)) {
+    if (
+      declarations.has(reference.name) ||
+      (reference.kind === "field" && map.mappings.has(reference.name))
+    ) {
       continue;
     }
 
     const range = rangeFromOffsets(document, reference.start, reference.end);
-    const message = map.exists
-      ? `Unknown Silwright type '${reference.name}'. It is neither declared in this .ndef file nor mapped in backend_cpp.map.`
-      : `Unknown Silwright type '${reference.name}'. No sibling backend_cpp.map file was found.`;
+    const message =
+      reference.kind === "choiceAlternative"
+        ? `Unknown Silwright choice alternative '${reference.name}'. It is not declared in this .ndef file.`
+        : map.exists
+          ? `Unknown Silwright type '${reference.name}'. It is neither declared in this .ndef file nor mapped in backend_cpp.map.`
+          : `Unknown Silwright type '${reference.name}'. No sibling backend_cpp.map file was found.`;
     nextDiagnostics.push(
       new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Error),
     );

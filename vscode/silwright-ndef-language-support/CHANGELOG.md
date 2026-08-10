@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add semantic highlighting and unknown-reference diagnostics for NDEF choice alternatives.
+
 ## 0.9.0 - 2026-08-10
 
 - Synchronize the extension manifest version so the complete extension can be released after the
