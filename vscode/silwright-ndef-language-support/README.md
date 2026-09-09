@@ -17,6 +17,18 @@ Basic Visual Studio Code language support for Silwright `.ndef` and `backend_cpp
 - Toggle-line-comment support
 - Go to Definition for node, trait, choice, and enum types in the current file, and for mapped
   field types in the sibling `backend_cpp.map`
+- Document formatting for indentation, blank-line spacing, field colon placement, declaration
+  spacing, trait-list commas, and `|` separator spacing
+- Optional format-on-save support through `silwrightNdef.formatOnSave`
+- Warning diagnostics for NDEF style conventions:
+  - `node`, `choice`, `trait`, and `enum` definitions should use CamelCase
+  - Node and trait field names should use snake_case
+
+## Settings
+
+- `silwrightNdef.formatter.enabled`: enables the NDEF document formatter. Defaults to `true`.
+- `silwrightNdef.formatOnSave`: formats NDEF files before saving. Defaults to `false`.
+- `silwrightNdef.lint.style.enabled`: enables naming-style warning diagnostics. Defaults to `true`.
 
 ## Notes
 

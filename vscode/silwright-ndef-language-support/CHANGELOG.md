@@ -3,6 +3,8 @@
 ## Unreleased
 
 - Add semantic highlighting and unknown-reference diagnostics for NDEF choice alternatives.
+- Add an NDEF document formatter with optional format-on-save support.
+- Add warning diagnostics for CamelCase definition names and snake_case field names.
 
 ## 0.9.0 - 2026-08-10
 

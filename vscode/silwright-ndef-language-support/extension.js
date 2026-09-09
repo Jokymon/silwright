@@ -1,5 +1,7 @@
 const vscode = require("vscode");
 const path = require("node:path");
+const { formatNdefText } = require("./src/formatter");
+const { findStyleIssues } = require("./src/linter");
 const {
   findBackendMappings,
   findDeclarations,
@@ -92,6 +94,11 @@ function activate(context) {
     },
     legend,
   );
+  const formattingProvider = vscode.languages.registerDocumentFormattingEditProvider("ndef", {
+    provideDocumentFormattingEdits(document) {
+      return provideNdefFormattingEdits(document);
+    },
+  });
 
   const updateDiagnostics = (document) => {
     if (document.languageId !== "ndef") {
@@ -121,7 +128,16 @@ function activate(context) {
     diagnostics,
     definitionProvider,
     semanticProvider,
+    formattingProvider,
     vscode.workspace.onDidOpenTextDocument(updateDiagnostics),
+    vscode.workspace.onWillSaveTextDocument((event) => {
+      if (
+        event.document.languageId === "ndef" &&
+        getNdefConfiguration(event.document).get("formatOnSave", false)
+      ) {
+        event.waitUntil(Promise.resolve(provideNdefFormattingEdits(event.document)));
+      }
+    }),
     vscode.workspace.onDidSaveTextDocument(updateDiagnosticsAfterSave),
     vscode.workspace.onDidChangeTextDocument((event) => updateDiagnostics(event.document)),
   );
@@ -161,7 +177,50 @@ async function refreshDiagnostics(document, diagnostics) {
     );
   }
 
+  if (getNdefConfiguration(document).get("lint.style.enabled", true)) {
+    for (const issue of findStyleIssues(document.getText())) {
+      const diagnostic = new vscode.Diagnostic(
+        rangeFromOffsets(document, issue.start, issue.end),
+        issue.message,
+        vscode.DiagnosticSeverity.Warning,
+      );
+      diagnostic.code = issue.code;
+      diagnostic.source = "Silwright NDEF";
+      nextDiagnostics.push(diagnostic);
+    }
+  }
+
   diagnostics.set(document.uri, nextDiagnostics);
+}
+
+/**
+ * @param {vscode.TextDocument} document
+ * @returns {vscode.TextEdit[]}
+ */
+function provideNdefFormattingEdits(document) {
+  if (!getNdefConfiguration(document).get("formatter.enabled", true)) {
+    return [];
+  }
+
+  const text = document.getText();
+  const formatted = formatNdefText(text);
+  if (formatted === text) {
+    return [];
+  }
+
+  const fullRange = new vscode.Range(
+    document.positionAt(0),
+    document.positionAt(text.length),
+  );
+  return [vscode.TextEdit.replace(fullRange, formatted)];
+}
+
+/**
+ * @param {vscode.TextDocument} document
+ * @returns {vscode.WorkspaceConfiguration}
+ */
+function getNdefConfiguration(document) {
+  return vscode.workspace.getConfiguration("silwrightNdef", document.uri);
 }
 
 /**
