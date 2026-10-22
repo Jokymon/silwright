@@ -15,4 +15,16 @@ theme:
 nav:
   - Home: index.md
   - Language reference: language-reference.md
-  - Design decisions: design-decisions.md
+  - Design decisions:
+      - Validation diagnostic severity: decisions/0001-validation-diagnostic-severity.md
+      - User-facing diagnostic format: decisions/0002-user-facing-diagnostic-format.md
+      - Value storage for structured fields: decisions/0003-value-storage-for-structured-fields.md
+      - Context-aware dump customization: decisions/0004-context-aware-dump-customization.md
+      - C++ backend header dependencies: decisions/0005-cpp-backend-header-dependencies.md
+      - Optional fields: decisions/0006-optional-fields.md
+      - External mutable visitor: decisions/0007-external-mutable-visitor.md
+      - External mutable transformer: decisions/0008-external-mutable-transformer.md
+      - Fixed repeated fields: decisions/0009-fixed-repeated-fields.md
+      - Reusable node traits: decisions/0010-reusable-node-traits.md
+      - Transient tooling fields: decisions/0011-transient-tooling-fields.md
+      - Choice-wide trait propagation: decisions/0012-choice-wide-trait-propagation.md

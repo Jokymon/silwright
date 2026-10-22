@@ -34,5 +34,5 @@ The generated model, dump support, visitor, and transformer files are written be
 Generated C++ currently requires C++20.
 
 See the [language reference](language-reference.md) for the complete syntax and generation
-contract. The [design decisions](design-decisions.md) record the alternatives considered for
+contract. The design decisions in `docs/decisions/` record the alternatives considered for
 important language and backend choices.
