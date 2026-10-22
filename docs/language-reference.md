@@ -132,7 +132,9 @@ end
 ```
 
 A choice generates a `snake_case` `std::variant` alias. Alternatives must resolve to nodes or
-other choices. Choice aliases are dependency-ordered; cyclic choice aliases are invalid.
+other choices. A node may be listed as a direct alternative of at most one choice in a module;
+nesting one choice inside another does not give the nested nodes another direct membership.
+Choice aliases are dependency-ordered; cyclic choice aliases are invalid.
 
 An `allwith` list applies its traits to every node reachable through the choice alternatives.
 Propagation is transitive through nested choices and changes the generated node types globally,
@@ -209,6 +211,7 @@ Semantic analysis rejects:
 - Duplicate declarations, fields, enum entries, choice alternatives, and mappings.
 - Unknown field types, traits, and choice alternatives.
 - Traits used as ordinary field types or choice alternatives.
+- A node listed as a direct alternative of more than one choice.
 - Invalid modifier combinations.
 - Cyclic choice aliases and recursive by-value node dependencies.
 - Invalid C++ identifiers, namespaces, and reserved keywords.
@@ -261,10 +264,9 @@ Each module generates a mutable bottom-up `transformer` class:
   and hook return type is promoted to that choice type. For example, a `Number` alternative of
   `Expr` returns `std::unique_ptr<expr>` or `expr_list`, allowing replacements with any
   expression alternative.
-- A concrete node that is a direct alternative of multiple transformable choices is rejected
-  because its generic transformer return type would be ambiguous. Such nodes also cannot be
-  used directly in pointer-backed structural fields; they must be reached through the choice
-  type used as their transformer return type.
+- Because each concrete node may be a direct alternative of at most one choice, a promoted
+  rewrite has one unambiguous choice return type. Promoted nodes cannot be used directly in
+  pointer-backed structural fields; they must be reached through that choice type.
 - Multiple-capable status propagates through choices: a repeated choice makes its alternatives
   multiple-capable, and a choice containing a multiple-capable alternative is also
   multiple-capable.

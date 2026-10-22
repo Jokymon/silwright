@@ -28,3 +28,4 @@ nav:
       - Reusable node traits: decisions/0010-reusable-node-traits.md
       - Transient tooling fields: decisions/0011-transient-tooling-fields.md
       - Choice-wide trait propagation: decisions/0012-choice-wide-trait-propagation.md
+      - Exclusive node choice membership: decisions/0013-exclusive-node-choice-membership.md

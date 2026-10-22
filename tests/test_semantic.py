@@ -95,6 +95,27 @@ def test_choice_allwith_traits_apply_transitively_and_are_deduplicated() -> None
     assert "struct other : public location, public attributes" in header
 
 
+def test_nested_choice_does_not_create_another_direct_node_membership() -> None:
+    parsed = ParsedDefinitionFile(
+        Module(
+            "syntax",
+            (
+                Node("Leaf"),
+                Choice("Inner", ("Leaf",)),
+                Choice("Outer", ("Inner",)),
+            ),
+        ),
+        (),
+    )
+
+    validated = analyze(parsed)
+
+    assert tuple(choice.name for choice in validated.ordered_choices) == (
+        "Inner",
+        "Outer",
+    )
+
+
 @pytest.mark.parametrize(
     ("parsed", "message"),
     (
@@ -128,6 +149,20 @@ def test_choice_allwith_traits_apply_transitively_and_are_deduplicated() -> None
                 Module("bad", (Node("Leaf"), Choice("Item", ("Leaf", "Leaf")))), ()
             ),
             "duplicate choice alternative 'Leaf' in Item",
+        ),
+        (
+            ParsedDefinitionFile(
+                Module(
+                    "bad",
+                    (
+                        Node("Leaf"),
+                        Choice("First", ("Leaf",)),
+                        Choice("Second", ("Leaf",)),
+                    ),
+                ),
+                (),
+            ),
+            "node 'Leaf' is a member of multiple choices ('First' and 'Second')",
         ),
         (
             ParsedDefinitionFile(

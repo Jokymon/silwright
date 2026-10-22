@@ -77,6 +77,7 @@ def analyze(parsed: ParsedDefinitionFile) -> ValidatedModel:
     _validate_modifiers(parsed.module, declarations)
     _validate_field_types(parsed.module, declarations, mappings)
     ordered_choices = _order_choices(parsed.module, declarations)
+    _validate_node_choice_membership(parsed.module, declarations)
     node_traits = _resolve_node_traits(parsed.module, declarations)
     node_fields = _resolve_node_fields(parsed.module, declarations, node_traits)
     repeated_pointer_choices = _repeated_pointer_choices(
@@ -412,6 +413,26 @@ def _order_nodes(
     return tuple(ordered)
 
 
+def _validate_node_choice_membership(
+    module: Module,
+    declarations: dict[str, Definition],
+) -> None:
+    containing_choices: dict[str, Choice] = {}
+    for choice in (item for item in module.definitions if isinstance(item, Choice)):
+        for alternative in choice.alternatives:
+            if not isinstance(declarations[alternative], Node):
+                continue
+            previous = containing_choices.get(alternative)
+            if previous is not None:
+                raise SemanticError(
+                    f"node {alternative!r} is a member of multiple choices "
+                    f"({previous.name!r} and {choice.name!r})",
+                    ErrorCode.MULTIPLE_CHOICE_MEMBERSHIP,
+                    choice.location,
+                )
+            containing_choices[alternative] = choice
+
+
 def _repeated_pointer_choices(
     module: Module,
     declarations: dict[str, Definition],
@@ -598,15 +619,6 @@ def _transformer_return_choices(
             target = declarations[alternative]
             if not isinstance(target, Node) or alternative not in visitable_names:
                 continue
-            previous = result.get(alternative)
-            if previous is not None:
-                raise SemanticError(
-                    f"node {alternative!r} appears in multiple transformable choices "
-                    f"({previous.name!r} and {choice.name!r}); transformer return type "
-                    "is ambiguous",
-                    ErrorCode.AMBIGUOUS_TRANSFORMER_RETURN,
-                    choice.location,
-                )
             result[alternative] = choice
     return result
 

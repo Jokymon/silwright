@@ -9,6 +9,8 @@ The project follows [Semantic Versioning](https://semver.org/). Releases are ide
 
 ### Added
 
+- Enforce that each node is a direct member of at most one choice, independent of whether the
+  choices participate in generated transformer APIs.
 - Add numbered, source-aware CLI diagnostics for syntax, semantic, missing-backend-map, and
   generation failures. Diagnostics now include `file:line:column`, a stable `SWxxxx` error code,
   the source line, and a caret marker instead of showing Python tracebacks for known failures.

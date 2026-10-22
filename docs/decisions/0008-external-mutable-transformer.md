@@ -27,11 +27,10 @@ multiple-capable alternative, so choice rewrites have one coherent return type. 
 dispatch through `std::visit`; generated hooks are only emitted for concrete nodes, not for
 choices. Repeated choices return the generated `<choice>_list` alias.
 
-This promotion is intentionally conservative. If a concrete node is a direct alternative of
-multiple transformable choices, generation is rejected because one `rewrite(std::unique_ptr<T>)`
-overload cannot have different return types for different call sites. A promoted node also
-cannot be used directly in pointer-backed structural fields; such fields could not assign a
-choice-typed replacement back into a concrete-node member.
+This promotion relies on the language-wide rule that a node may be a direct alternative of at
+most one choice. A promoted node also cannot be used directly in pointer-backed structural
+fields; such fields could not assign a choice-typed replacement back into a concrete-node
+member.
 
 Default hook implementations move the mutable node reference into a newly allocated owning
 pointer. Multiple hooks return a one-element replacement list. This keeps the base transformer

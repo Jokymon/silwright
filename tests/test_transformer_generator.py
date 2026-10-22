@@ -145,7 +145,7 @@ def test_transformer_name_conflict_is_rejected() -> None:
         analyze(parsed)
 
 
-def test_transformer_rejects_ambiguous_choice_return_type() -> None:
+def test_analysis_rejects_multiple_choice_membership_without_transformable_choices() -> None:
     parsed = ParsedDefinitionFile(
         Module(
             "bad",
@@ -153,12 +153,19 @@ def test_transformer_rejects_ambiguous_choice_return_type() -> None:
                 Node("Leaf"),
                 Choice("First", ("Leaf",)),
                 Choice("Second", ("Leaf",)),
+                Node(
+                    "Root",
+                    (
+                        Field("first", "First", by_value=True),
+                        Field("second", "Second", by_value=True),
+                    ),
+                ),
             ),
         ),
         (),
     )
 
-    with pytest.raises(SemanticError, match="multiple transformable choices"):
+    with pytest.raises(SemanticError, match="member of multiple choices"):
         analyze(parsed)
 
 
