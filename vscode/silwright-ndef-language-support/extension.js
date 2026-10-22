@@ -5,6 +5,7 @@ const { findStyleIssues } = require("./src/linter");
 const {
   findBackendMappings,
   findDeclarations,
+  findLocalDefinitionAtOffset,
   findTypeReferences,
 } = require("./src/symbols");
 
@@ -28,8 +29,9 @@ function activate(context) {
         return undefined;
       }
 
+      const text = document.getText();
       const name = document.getText(wordRange);
-      const declaration = findDeclarations(document.getText()).get(name);
+      const declaration = findLocalDefinitionAtOffset(text, document.offsetAt(position));
       if (declaration) {
         return new vscode.Location(
           document.uri,
@@ -169,7 +171,9 @@ async function refreshDiagnostics(document, diagnostics) {
     const message =
       reference.kind === "choiceAlternative"
         ? `Unknown Silwright choice alternative '${reference.name}'. It is not declared in this .ndef file.`
-        : map.exists
+        : reference.kind === "trait"
+          ? `Unknown Silwright trait '${reference.name}'. It is not declared in this .ndef file.`
+          : map.exists
           ? `Unknown Silwright type '${reference.name}'. It is neither declared in this .ndef file nor mapped in backend_cpp.map.`
           : `Unknown Silwright type '${reference.name}'. No sibling backend_cpp.map file was found.`;
     nextDiagnostics.push(

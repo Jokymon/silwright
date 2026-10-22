@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add explicit navigation, semantic highlighting, and diagnostics for traits referenced through
+  node `with` and choice `allwith` lists.
 - Add semantic highlighting and unknown-reference diagnostics for NDEF choice alternatives.
 - Add an NDEF document formatter with optional format-on-save support.
 - Add warning diagnostics for CamelCase definition names and snake_case field names.

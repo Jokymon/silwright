@@ -5,6 +5,8 @@ const {
   findChoiceAlternativeReferences,
   findDeclarations,
   findFieldTypeReferences,
+  findLocalDefinitionAtOffset,
+  findTraitReferences,
   findTypeReferences,
 } = require("../src/symbols");
 
@@ -74,7 +76,7 @@ test("finds field type references with modifiers", () => {
 
 test("finds choice alternative references with flexible separators", () => {
   const text = [
-    "choice Expr",
+    "choice Expr allwith Location, Attributes",
     "    Number |",
     "    StringLiteral",
     "    | FunctionCall // ignored: FakeAlternative",
@@ -94,6 +96,59 @@ test("finds choice alternative references with flexible separators", () => {
     assert.equal(reference.kind, "choiceAlternative");
     assert.equal(text.slice(reference.start, reference.end), reference.name);
   }
+});
+
+test("finds trait references in with and allwith lists", () => {
+  const text = [
+    "node Leaf with Location, Attributes // ignored: FakeTrait",
+    "end",
+    "choice Expr allwith Location, Attributes",
+    "    Leaf",
+    "end",
+  ].join("\n");
+
+  const references = findTraitReferences(text);
+
+  assert.deepEqual(
+    references.map((reference) => reference.name),
+    ["Location", "Attributes", "Location", "Attributes"],
+  );
+  for (const reference of references) {
+    assert.equal(reference.kind, "trait");
+    assert.equal(text.slice(reference.start, reference.end), reference.name);
+  }
+});
+
+test("resolves with and allwith trait references to their declarations", () => {
+  const text = [
+    "trait Location",
+    "end",
+    "trait Attributes",
+    "end",
+    "node Leaf with Location",
+    "end",
+    "choice Expr allwith Location, Attributes",
+    "    Leaf",
+    "end",
+  ].join("\n");
+  const declarationStart = text.indexOf("Location");
+  const withReference = text.indexOf("Location", declarationStart + 1);
+  const allwithLocation = text.indexOf("Location", withReference + 1);
+  const allwithAttributes = text.lastIndexOf("Attributes");
+
+  assert.deepEqual(findLocalDefinitionAtOffset(text, withReference + 1), {
+    name: "Location",
+    start: declarationStart,
+    end: declarationStart + "Location".length,
+  });
+  assert.equal(
+    findLocalDefinitionAtOffset(text, allwithLocation + 1).start,
+    declarationStart,
+  );
+  assert.equal(
+    findLocalDefinitionAtOffset(text, allwithAttributes + 1).start,
+    text.indexOf("Attributes"),
+  );
 });
 
 test("combines field and choice type references in source order", () => {

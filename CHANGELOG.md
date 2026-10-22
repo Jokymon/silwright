@@ -9,6 +9,8 @@ The project follows [Semantic Versioning](https://semver.org/). Releases are ide
 
 ### Added
 
+- Add VS Code navigation and semantic recognition for trait references in `with` and `allwith`
+  lists.
 - Enforce that each node is a direct member of at most one choice, independent of whether the
   choices participate in generated transformer APIs.
 - Add numbered, source-aware CLI diagnostics for syntax, semantic, missing-backend-map, and

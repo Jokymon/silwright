@@ -3,7 +3,9 @@ const DECLARATION_PATTERN =
 const FIELD_TYPE_PATTERN =
   /^\s*[A-Za-z_][A-Za-z0-9_]*\s*:\s*(?:fixed\s+)?(?:[*?]\s*)?(?:value\s+)?(?:transient\s+)?([A-Za-z_][A-Za-z0-9_]*)\b/gm;
 const CHOICE_BLOCK_PATTERN =
-  /^\s*choice\s+[A-Za-z_][A-Za-z0-9_]*\b(?<body>[\s\S]*?)^\s*end\b/gm;
+  /^[ \t]*choice[ \t]+[A-Za-z_][A-Za-z0-9_]*(?:[ \t]+allwith[ \t]+[A-Za-z_][A-Za-z0-9_]*(?:[ \t]*,[ \t]*[A-Za-z_][A-Za-z0-9_]*)*)?[ \t]*\r?\n(?<body>[\s\S]*?)^[ \t]*end\b/gm;
+const TRAIT_LIST_PATTERN =
+  /^[ \t]*(?:node[ \t]+[A-Za-z_][A-Za-z0-9_]*[ \t]+with|choice[ \t]+[A-Za-z_][A-Za-z0-9_]*[ \t]+allwith)[ \t]+(?<traits>[A-Za-z_][A-Za-z0-9_]*(?:[ \t]*,[ \t]*[A-Za-z_][A-Za-z0-9_]*)*)/gm;
 const NAME_PATTERN = /[A-Za-z_][A-Za-z0-9_]*/g;
 const BACKEND_MAPPING_PATTERN = /^\s*([A-Za-z_][A-Za-z0-9_]*)\s*:/gm;
 
@@ -91,10 +93,37 @@ function findChoiceAlternativeReferences(text) {
 }
 
 /**
+ * Find trait references in node `with` and choice `allwith` lists.
+ *
+ * @param {string} text
+ * @returns {Array<{name: string, start: number, end: number, kind: "trait"}>}
+ */
+function findTraitReferences(text) {
+  const references = [];
+  const stripped = stripNdefComments(text);
+  let listMatch;
+
+  while ((listMatch = TRAIT_LIST_PATTERN.exec(stripped)) !== null) {
+    const traits = listMatch.groups.traits;
+    const traitsStart = listMatch.index + listMatch[0].lastIndexOf(traits);
+    let nameMatch;
+
+    NAME_PATTERN.lastIndex = 0;
+    while ((nameMatch = NAME_PATTERN.exec(traits)) !== null) {
+      const name = nameMatch[0];
+      const start = traitsStart + nameMatch.index;
+      references.push({ name, start, end: start + name.length, kind: "trait" });
+    }
+  }
+
+  return references;
+}
+
+/**
  * Find all type references in an NDEF document that editor features should resolve.
  *
  * @param {string} text
- * @returns {Array<{name: string, start: number, end: number, kind: "field" | "choiceAlternative"}>}
+ * @returns {Array<{name: string, start: number, end: number, kind: "field" | "choiceAlternative" | "trait"}>}
  */
 function findTypeReferences(text) {
   return [
@@ -103,7 +132,33 @@ function findTypeReferences(text) {
       kind: "field",
     })),
     ...findChoiceAlternativeReferences(text),
+    ...findTraitReferences(text),
   ].sort((left, right) => left.start - right.start);
+}
+
+/**
+ * Resolve a local type reference at an offset to its declaration.
+ *
+ * @param {string} text
+ * @param {number} offset
+ * @returns {{name: string, start: number, end: number} | undefined}
+ */
+function findLocalDefinitionAtOffset(text, offset) {
+  const declarations = findDeclarations(text);
+  const reference = findTypeReferences(text).find(
+    (candidate) => candidate.start <= offset && offset < candidate.end,
+  );
+  if (reference) {
+    const declaration = declarations.get(reference.name);
+    return declaration ? { name: reference.name, ...declaration } : undefined;
+  }
+
+  for (const [name, declaration] of declarations) {
+    if (declaration.start <= offset && offset < declaration.end) {
+      return { name, ...declaration };
+    }
+  }
+  return undefined;
 }
 
 /**
@@ -153,5 +208,7 @@ module.exports = {
   findChoiceAlternativeReferences,
   findDeclarations,
   findFieldTypeReferences,
+  findLocalDefinitionAtOffset,
+  findTraitReferences,
   findTypeReferences,
 };

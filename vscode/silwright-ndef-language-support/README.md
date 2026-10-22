@@ -9,14 +9,17 @@ Basic Visual Studio Code language support for Silwright `.ndef` and `backend_cpp
 - Highlighting for `*` and `|` operators and `//` line comments
 - Declaration-name and field-name highlighting
 - Basic highlighting for `backend_cpp.map` mappings and `@include` directives
-- Semantic highlighting for NDEF field types and choice alternatives declared in the current
-  `.ndef` file, plus field types mapped in the sibling `backend_cpp.map`
+- Semantic highlighting for NDEF field types, choice alternatives, and traits in `with` and
+  `allwith` lists declared in the current `.ndef` file, plus field types mapped in the sibling
+  `backend_cpp.map`
 - Diagnostics for field types that are neither declared in the `.ndef` file nor mapped in the
-  sibling `backend_cpp.map`, and for unknown choice alternatives
+  sibling `backend_cpp.map`, unknown choice alternatives, and unknown traits in `with` and
+  `allwith` lists
 - Folding and automatic indentation for `node`, `trait`, `choice`, and `enum` blocks
 - Toggle-line-comment support
-- Go to Definition for node, trait, choice, and enum types in the current file, and for mapped
-  field types in the sibling `backend_cpp.map`
+- Go to Definition for node, trait, choice, and enum references in the current file—including
+  traits in `with` and `allwith` lists—and for mapped field types in the sibling
+  `backend_cpp.map`
 - Document formatting for indentation, blank-line spacing, field colon placement, declaration
   spacing, trait-list commas, and `|` separator spacing
 - Optional format-on-save support through `silwrightNdef.formatOnSave`
