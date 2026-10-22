@@ -1,5 +1,32 @@
 # Repository instructions
 
+## Python development
+
+- This project uses Python 3.14 or newer and `uv` for Python environments,
+  dependency management, locking, and command execution.
+- Keep dependencies in `pyproject.toml` and commit corresponding changes to
+  `uv.lock`. Use `uv add` or `uv remove` instead of invoking `pip` directly.
+- Synchronize an unchanged dependency set with `uv sync --locked`. Run project
+  commands through `uv run`.
+
+## Tests and quality checks
+
+- Unit tests use pytest and live under `tests/`. Add or update tests when
+  changing behavior, and run them with `uv run pytest`.
+- Python linting uses Ruff. Run it with `uv run ruff check .`.
+- Python type checking uses Mypy in strict mode. Run it with `uv run mypy`.
+- Before completing a Python change, run all relevant tests, lint checks, and
+  type checks. Report any check that could not be run.
+
+## Documentation
+
+- Project documentation uses MkDocs. Author documentation as Markdown under
+  `docs/` and maintain its navigation in `mkdocs.yml`.
+- Documentation dependencies are declared in the `docs` dependency group.
+  Build the site with `uv run --group docs mkdocs build --strict`.
+- Treat MkDocs warnings and broken navigation or links as issues to fix before
+  completing a documentation change.
+
 ## Design decisions
 
 - Store design decisions as Markdown files under `docs/decisions/`.
