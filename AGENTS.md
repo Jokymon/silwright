@@ -18,6 +18,11 @@
 - Before completing a Python change, run all relevant tests, lint checks, and
   type checks. Report any check that could not be run.
 
+## Changelog
+
+- When adding a new feature, add a concise entry to the `Added` section under
+  `[Unreleased]` in `CHANGELOG.md` as part of the same change.
+
 ## Documentation
 
 - Project documentation uses MkDocs. Author documentation as Markdown under
