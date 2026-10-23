@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.10.1 - 2026-10-23
+
+- Publish the extension under the `capystudio` publisher ID.
+
 ## 0.10.0 - 2026-10-23
 
 - Add explicit navigation, semantic highlighting, and diagnostics for traits referenced through
