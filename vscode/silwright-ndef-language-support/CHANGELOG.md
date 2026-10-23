@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.10.0 - 2026-10-23
+
 - Add explicit navigation, semantic highlighting, and diagnostics for traits referenced through
   node `with` and choice `allwith` lists.
 - Add semantic highlighting and unknown-reference diagnostics for NDEF choice alternatives.

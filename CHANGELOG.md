@@ -7,6 +7,8 @@ The project follows [Semantic Versioning](https://semver.org/). Releases are ide
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-23
+
 ### Added
 
 - Add VS Code navigation and semantic recognition for trait references in `with` and `allwith`
@@ -79,7 +81,8 @@ The project follows [Semantic Versioning](https://semver.org/). Releases are ide
 - Example language definition and end-to-end C++ example.
 - Visual Studio Code language support for `.ndef` files.
 
-[Unreleased]: https://github.com/Jokymon/silwright/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/Jokymon/silwright/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/Jokymon/silwright/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/Jokymon/silwright/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/Jokymon/silwright/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/Jokymon/silwright/releases/tag/v0.3.0
