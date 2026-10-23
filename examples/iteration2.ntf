@@ -1,0 +1,288 @@
+// NTF iteration 2: constructor-shaped tree transformation rules.
+// This iteration keeps the source-oriented rule model from iteration 1, but
+// makes target creation look like target creation. A constructed node is written
+// as TargetType(field = value, ...), including after emit.
+//
+// Design decision: use "=" for constructor fields. In this language, fields are
+// initialized once inside a constructor expression; they are not reassigned. The
+// notation is familiar from named arguments and object literals.
+//
+// Design decision: keep "rule", "from", "to", and "many". Those words describe
+// the rule contract and cardinality clearly. The terser notation is reserved
+// for local construction where it improves grouping.
+//
+// TODO: Decide whether trailing commas should be required, optional, or
+// disallowed. This example allows optional trailing commas in multiline
+// constructors because it makes edits less noisy.
+
+transform ast to lir
+
+alias ast as a
+alias lir as l
+
+rule Module from a.Module to l.Module =
+    l.Module(
+        location = source.location,
+        imports = map transform source.imports,
+        globals = map transform source.globals,
+        functions = map transform source.functions,
+    )
+    // ast.Module.typedefs and ast.Module.module_scope have no LIR target.
+    // TODO: Decide if ignored source fields need explicit "ignore" clauses or
+    // if this belongs in an optional lint layer.
+end
+
+rule ImportDefinition from a.ImportDefinition to l.ImportDefinition =
+    l.ImportDefinition(
+        location = source.location,
+        ns_name = source.ns_name,
+        function_head = transform source.function_head,
+        alias = source.alias,
+    )
+end
+
+rule FunctionHead from a.FunctionHead to l.FunctionHead =
+    l.FunctionHead(
+        location = source.location,
+        name = source.name,
+        signature = source.signature,
+    )
+end
+
+rule GlobalDefinition from a.GlobalDefinition to l.GlobalDefinition =
+    l.GlobalDefinition(
+        location = source.location,
+        name = source.name,
+        assigned_type = source.assigned_type,
+        symbol_ref = source.symbol_ref,
+        init_expression = transform source.init_expression as expression,
+    )
+end
+
+rule FunctionDefinition from a.FunctionDefinition to l.FunctionDefinition =
+    l.FunctionDefinition(
+        head = transform source.function_head,
+        code = flat_map transform source.code as statement,
+        attributes = helper attribute_names(source.attributes),
+    )
+    // source.function_scope is transient. l.FunctionDefinition.function_scope is
+    // also transient and intentionally left out of constructor completeness.
+    // TODO: Decide whether transient target fields should have defaults or
+    // explicit initialization syntax.
+end
+
+// ----------------------------------------------------------------------
+// Lowering AST expressions to LIR statements.
+
+rule ExprAsStatement from a.Expr to many l.Statement as statement =
+    match source
+        case a.ReturnExpression =>
+            emit l.ReturnStatement(
+                expression = transform source.expression as expression,
+                is_explicit = source.is_explicit,
+            )
+
+        case a.BreakStatement =>
+            emit l.BreakStatement()
+
+        case a.WhileExpression =>
+            emit l.WhileStatement(
+                condition = transform source.condition as expression,
+                while_code = flat_map transform source.while_code as statement,
+            )
+
+        case a.BinaryExpression when source.operation == Assignment =>
+            emit l.StoreStatement(
+                target = transform source.left as place,
+                value = transform source.right as expression,
+                stored_type = source.assigned_type,
+            )
+            // TODO: This generic assignment overlaps the string and record
+            // assignment rules below. Rule selection still needs a policy.
+
+        case a.LetExpression =>
+            emit l.StoreStatement(
+                target = l.Place(
+                    base = l.BaseVar(
+                        name = source.name,
+                        symbol_ref = source.symbol_ref,
+                    ),
+                    projection = [],
+                ),
+                value = transform source.init_expression as expression,
+                stored_type = helper type_of_symbol(source.symbol_ref),
+            )
+            // TODO: Confirm whether LIR needs a declaration/allocation
+            // statement, or whether symbol_ref is enough to identify storage.
+
+        case a.DiscardExpression =>
+            emit l.ExpressionStatement(
+                expression = transform source.expression as expression,
+                is_dropped = true,
+            )
+
+        case _ =>
+            emit l.ExpressionStatement(
+                expression = transform source as expression,
+                is_dropped = false,
+            )
+    end
+end
+
+// ----------------------------------------------------------------------
+// Lowering AST expressions to LIR expressions.
+
+rule ExprAsExpression from a.Expr to l.Expr as expression =
+    match source
+        case a.Number =>
+            l.Number(
+                value = source.number,
+                assigned_type = source.assigned_type,
+            )
+
+        case a.CharLiteral =>
+            l.CharLiteral(ch = source.ch)
+
+        case a.BoolLiteral =>
+            l.BoolLiteral(value = source.value)
+
+        case a.StringLiteral =>
+            l.StringLiteral(
+                table_index = source.table_index,
+                size = source.size,
+            )
+
+        case a.VarReference =>
+            l.LoadExpression(
+                source = transform source as place,
+                assigned_type = helper type_of_symbol(source.symbol_ref),
+            )
+            // TODO: VarReference does not carry assigned_type directly in AST.
+
+        case a.PointerDeref =>
+            l.LoadExpression(
+                source = transform source as place,
+                assigned_type = source.assigned_type,
+            )
+
+        case a.FieldDeref =>
+            l.LoadExpression(
+                source = transform source as place,
+                assigned_type = helper field_type(source.object_type, source.fieldname),
+            )
+
+        case a.FunctionCall =>
+            l.FunctionCall(
+                function_name = source.function_name,
+                symbol_ref = source.symbol_ref,
+                arguments = map transform source.parameter as expression,
+            )
+
+        case a.CastExpression =>
+            l.CastExpression(
+                expression = transform source.expression as expression,
+                cast_type = source.cast_type,
+            )
+
+        case a.UnaryExpression =>
+            l.UnaryExpression(
+                expr = transform source.expr as expression,
+                assigned_type = source.assigned_type,
+            )
+            // TODO: lir.UnaryExpression has no operation field. Confirm whether
+            // unary ops are lowered earlier or missing from lir.ndef.
+
+        case a.BinaryExpression when source.operation != Assignment =>
+            l.BinaryExpression(
+                op = helper binary_op(source.operation),
+                left = transform source.left as expression,
+                right = transform source.right as expression,
+                assigned_type = source.assigned_type,
+            )
+
+        case a.IfExpression =>
+            l.IfExpression(
+                condition = transform source.condition as expression,
+                then_code = flat_map transform source.then_code as statement,
+                else_code = flat_map transform source.else_code as statement,
+                assigned_type = source.assigned_type,
+            )
+
+        case a.RecordInitialisation =>
+            l.AllocateRecordExpression(type = source.type_spec)
+            // TODO: This loses field initialization stores unless the caller
+            // has a surrounding place or temporary strategy.
+
+        // TODO: Decide how partial rules are declared. Several AST Expr
+        // alternatives are statement-only and cannot become LIR Expr values.
+    end
+end
+
+// ----------------------------------------------------------------------
+// Lowering AST l-values into LIR places.
+
+rule ExprAsPlace from a.Expr to l.Place as place =
+    match source
+        case a.VarReference when source.context == Lhs =>
+            l.Place(
+                base = l.BaseVar(
+                    name = source.name,
+                    symbol_ref = source.symbol_ref,
+                ),
+                projection = [],
+            )
+
+        case a.PointerDeref =>
+            l.Place(
+                base = helper place_base(source.pointer_expression),
+                projection = helper append_deref_projection(
+                    transform source.pointer_expression as place
+                ),
+            )
+
+        case a.FieldDeref =>
+            l.Place(
+                base = helper place_base(source.object),
+                projection = helper append_field_projection(
+                    transform source.object as place,
+                    helper field_index(source.object_type, source.fieldname),
+                ),
+            )
+
+        // TODO: Non-place expressions should be rejected with a targeted
+        // diagnostic when selected by "transform ... as place".
+    end
+end
+
+// ----------------------------------------------------------------------
+// More specific assignment lowerings.
+
+rule StringAssignment from a.BinaryExpression to many l.Statement as statement
+    require source.operation == Assignment
+    require source.right is a.StringLiteral
+=
+    emit l.StoreStringStatement(
+        target = transform source.left as place,
+        string_table_index = source.right.table_index,
+        string_size = source.right.size,
+    )
+end
+
+rule RecordAssignment from a.BinaryExpression to many l.Statement as statement
+    require source.operation == Assignment
+    require source.right is a.RecordInitialisation
+=
+    emit l.StoreRecordStatement(
+        target = transform source.left as place,
+        initialisations = map transform source.right.initialisations,
+        stored_type = source.right.type_spec,
+    )
+end
+
+rule FieldInitialisation from a.FieldInitialisation to l.FieldInitialisation =
+    l.FieldInitialisation(
+        field_index = helper field_index_by_name(source.field_name),
+        value = transform source.init_expression as expression,
+    )
+end
+

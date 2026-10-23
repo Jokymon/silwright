@@ -1,0 +1,338 @@
+// NTF iteration 1: source-oriented tree transformation rules.
+// This file is intentionally both an example and a design note. Lines starting
+// with // are ignored by the language and document the reasoning behind the
+// notation.
+//
+// Design decision: prefer "rule Source to Target" over arrow notation. The
+// words read well, do not overload punctuation, and make cardinality explicit
+// with the keyword "many" when one source node can produce zero or more target
+// nodes.
+//
+// TODO: Decide whether transformation files should import .ndef files by path,
+// by module name, or by a project-level module registry. This example names the
+// modules only, because the current ndef examples also start from module names.
+
+transform ast to lir
+
+// Design decision: a short alias may be introduced for readability, but the
+// language should not require aliases when module names are already compact.
+// The dot is used only for path selection: module.type, source.field, and
+// nested.field paths are all the same syntactic idea.
+
+alias ast as a
+alias lir as l
+
+// Design decision: top-level rules transform one source type into one target
+// type unless "many" is written before the target type. Named contexts such as
+// "statement", "expression", and "place" disambiguate multiple valid lowerings
+// from the same source type.
+
+rule Module from a.Module to l.Module
+    // Same-name scalar or list fields should still be written explicitly in a
+    // first iteration. This keeps the language easy to validate: every target
+    // field can be checked for a value.
+    set location from source.location
+    set imports from map transform source.imports
+    set globals from map transform source.globals
+    set functions from map transform source.functions
+
+    // ast.Module has typedefs and module_scope, but lir.Module does not.
+    // TODO: Decide if unused source fields should be declared with an explicit
+    // ignore statement, or if they should be reported only by an optional lint.
+end
+
+rule ImportDefinition from a.ImportDefinition to l.ImportDefinition
+    // Design decision: "same" is a compact but readable way to request a
+    // same-named field copy. It is intentionally limited to fields, not whole
+    // nodes, so field coverage remains visible.
+    same location
+    same ns_name
+    set function_head from transform source.function_head
+    same alias
+end
+
+rule FunctionHead from a.FunctionHead to l.FunctionHead
+    same location
+    same name
+    same signature
+end
+
+rule GlobalDefinition from a.GlobalDefinition to l.GlobalDefinition
+    same location
+    same name
+    same assigned_type
+    same symbol_ref
+    set init_expression from transform source.init_expression as expression
+end
+
+rule FunctionDefinition from a.FunctionDefinition to l.FunctionDefinition
+    // ast.FunctionDefinition calls this field function_head while lir uses head.
+    set head from transform source.function_head
+
+    // Design decision: repeated output uses flat_map rather than hidden
+    // behavior in transform. A statement lowering can emit zero, one, or many
+    // statements, so the cardinality change is visible at the call site.
+    set code from flat_map transform source.code as statement
+
+    // ast attributes are *attribute while lir attributes are *identifier.
+    // TODO: Define whether helper calls are ordinary host-language functions,
+    // generated callbacks, or additional rules over scalar/non-node values.
+    set attributes from helper attribute_names(source.attributes)
+
+    // source.function_scope is transient in ast and target has function_scope
+    // transient in lir. Keeping it unset here assumes transient fields are not
+    // part of serialized/generated transformation completeness checks.
+    // TODO: Decide whether transient target fields require defaults.
+end
+
+// ----------------------------------------------------------------------
+// Lowering AST expressions to LIR statements.
+
+rule ExprAsStatement from a.Expr to many l.Statement as statement
+    match source
+        case a.ReturnExpression
+            emit l.ReturnStatement
+                set expression from transform source.expression as expression
+                same is_explicit
+            end
+
+        case a.BreakStatement
+            emit l.BreakStatement
+            end
+
+        case a.WhileExpression
+            emit l.WhileStatement
+                set condition from transform source.condition as expression
+                set while_code from flat_map transform source.while_code as statement
+            end
+
+        case a.BinaryExpression when source.operation == Assignment
+            // TODO: Decide where operator_type names are declared. They are
+            // backend scalar values in the current AST ndef, but the transform
+            // language needs symbolic names for guards.
+            emit l.StoreStatement
+                set target from transform source.left as place
+                set value from transform source.right as expression
+                set stored_type from source.assigned_type
+            end
+
+        case a.StringLiteral
+            // A string literal as a standalone expression cannot be represented
+            // as a store without a target. We still emit an expression statement
+            // here, while string assignment is handled by the guarded assignment
+            // case below.
+            // TODO: Decide whether special statement cases should be allowed to
+            // refine nested values, e.g. assignment whose right side is string.
+            emit l.ExpressionStatement
+                set expression from transform source as expression
+                set is_dropped from true
+            end
+
+        case a.DiscardExpression
+            emit l.ExpressionStatement
+                set expression from transform source.expression as expression
+                set is_dropped from true
+            end
+
+        case a.LetExpression
+            // The AST models local declarations as expressions, while LIR has
+            // only stores and no explicit declaration statement. This assumes
+            // symbol allocation has already happened and the let expression can
+            // lower to a store into the named local.
+            // TODO: Confirm whether LIR needs a declaration/allocation
+            // statement, or whether symbol_ref is enough to identify storage.
+            emit l.StoreStatement
+                set target from l.Place
+                    set base from l.BaseVar
+                        same name
+                        same symbol_ref
+                    end
+                    set projection from []
+                end
+                set value from transform source.init_expression as expression
+                set stored_type from helper type_of_symbol(source.symbol_ref)
+            end
+
+        case _
+            // Default expression lowering. The underscore is the only wildcard
+            // pattern and only means "otherwise" in a match case.
+            emit l.ExpressionStatement
+                set expression from transform source as expression
+                set is_dropped from false
+            end
+    end
+end
+
+// ----------------------------------------------------------------------
+// Lowering AST expressions to LIR expressions.
+
+rule ExprAsExpression from a.Expr to l.Expr as expression
+    match source
+        case a.Number
+            emit l.Number
+                set value from source.number
+                same assigned_type
+            end
+
+        case a.CharLiteral
+            emit l.CharLiteral
+                same ch
+            end
+
+        case a.BoolLiteral
+            emit l.BoolLiteral
+                same value
+            end
+
+        case a.StringLiteral
+            emit l.StringLiteral
+                same table_index
+                same size
+            end
+
+        case a.VarReference
+            emit l.LoadExpression
+                set source from transform source as place
+                // TODO: VarReference does not carry assigned_type directly in
+                // ast. Decide whether type comes from symbol_ref, a helper, or
+                // an earlier normalization pass.
+                set assigned_type from helper type_of_symbol(source.symbol_ref)
+            end
+
+        case a.PointerDeref
+            emit l.LoadExpression
+                set source from transform source as place
+                same assigned_type
+            end
+
+        case a.FieldDeref
+            emit l.LoadExpression
+                set source from transform source as place
+                set assigned_type from helper field_type(source.object_type, source.fieldname)
+            end
+
+        case a.FunctionCall
+            emit l.FunctionCall
+                same function_name
+                same symbol_ref
+                set arguments from map transform source.parameter as expression
+            end
+
+        case a.CastExpression
+            emit l.CastExpression
+                set expression from transform source.expression as expression
+                same cast_type
+                // source.op_range has no target field.
+            end
+
+        case a.UnaryExpression
+            emit l.UnaryExpression
+                set expr from transform source.expr as expression
+                same assigned_type
+                // TODO: lir.UnaryExpression currently has no operation field.
+                // Confirm whether unary ops are encoded by assigned_type,
+                // lowered earlier, or missing in lir.ndef.
+            end
+
+        case a.BinaryExpression when source.operation != Assignment
+            emit l.BinaryExpression
+                set op from helper binary_op(source.operation)
+                set left from transform source.left as expression
+                set right from transform source.right as expression
+                same assigned_type
+            end
+
+        case a.IfExpression
+            emit l.IfExpression
+                set condition from transform source.condition as expression
+                set then_code from flat_map transform source.then_code as statement
+                set else_code from flat_map transform source.else_code as statement
+                same assigned_type
+            end
+
+        case a.RecordInitialisation
+            // lir separates allocation from field stores. Returning only an
+            // expression cannot express the stores without an enclosing target.
+            // TODO: Decide if expression lowering may request surrounding
+            // temporaries, or if record initialization must only lower in
+            // statement context.
+            emit l.AllocateRecordExpression
+                set type from source.type_spec
+            end
+
+        // TODO: a.LetExpression, a.RecordDefinition, a.ReturnExpression,
+        // a.BreakStatement, a.WhileExpression, and a.DiscardExpression are not
+        // valid expression-context values in LIR as currently modeled. The
+        // checker should reject missing cases unless the rule is explicitly
+        // marked partial.
+    end
+end
+
+// ----------------------------------------------------------------------
+// Lowering AST l-values into LIR places.
+
+rule ExprAsPlace from a.Expr to l.Place as place
+    match source
+        case a.VarReference when source.context == Lhs
+            emit l.Place
+                set base from l.BaseVar
+                    same name
+                    same symbol_ref
+                end
+                set projection from []
+            end
+
+        case a.PointerDeref
+            // Design decision: list expressions are written with [] only for
+            // literal lists. Projection composition should use named helpers
+            // until the language has a richer list-building story.
+            emit l.Place
+                set base from helper place_base(source.pointer_expression)
+                set projection from helper append_deref_projection(
+                    transform source.pointer_expression as place
+                )
+            end
+
+        case a.FieldDeref
+            emit l.Place
+                set base from helper place_base(source.object)
+                set projection from helper append_field_projection(
+                    transform source.object as place,
+                    helper field_index(source.object_type, source.fieldname)
+                )
+            end
+    end
+end
+
+// ----------------------------------------------------------------------
+// A refined statement rule sketch for assignment stores.
+
+rule StringAssignment from a.BinaryExpression to many l.Statement as statement
+    // TODO: Decide rule ordering and overlap. This rule is more specific than
+    // ExprAsStatement's generic Assignment case. The language needs a clear
+    // conflict policy: first match, most specific match, or explicit priority.
+    require source.operation == Assignment
+    require source.right is a.StringLiteral
+
+    emit l.StoreStringStatement
+        set target from transform source.left as place
+        set string_table_index from source.right.table_index
+        set string_size from source.right.size
+    end
+end
+
+rule RecordAssignment from a.BinaryExpression to many l.Statement as statement
+    require source.operation == Assignment
+    require source.right is a.RecordInitialisation
+
+    emit l.StoreRecordStatement
+        set target from transform source.left as place
+        set initialisations from map transform source.right.initialisations
+        set stored_type from source.right.type_spec
+    end
+end
+
+rule FieldInitialisation from a.FieldInitialisation to l.FieldInitialisation
+    set field_index from helper field_index_by_name(source.field_name)
+    set value from transform source.init_expression as expression
+end

@@ -1,0 +1,168 @@
+// Gives the general context of the transformation by mentioning the source and
+// the target module names followed by an optional alias which can be used to
+// refer to nodes of a specific module in case node names are ambiguous. The
+// alias is separated by a :
+transformation ast:a to lir:l
+
+// Now follows a list of how a node definition from the source module is mapped
+// to a node definition of the target module. The following is an example for a
+// `node` typed node.
+a:Module -> l:Module = 
+    l:Module(
+        // In the details of the node mapping we have a description how individual
+        // attributes from the source node are mapped to attributes in the target
+        // node.
+        location = source.location,
+        imports = map transform source.imports,
+        globals = map transform source.globals,
+        functions = map transform source.functions,
+        // TODO: we probably want a check which warns about target properties that
+        // do not receive a value
+    )
+end
+
+
+// This could be an alternative approach for mapping with a more constructor-
+// like notation for the target node type
+a:FunctionDefinition -> l:FunctionDefinition(
+    head = source.head  // TODO: this is actually a structured element and might need more details
+    // With the following construct we say that we construct the l:FunctionDefinition.code
+    // fields value by taking the a:FunctionDefinition.code as a list and transforming
+    // each contained element using the transformation rules, but in case of 
+    // ambiguous rules, take the ones with context 'statement'. 'map' here
+    // might be a special keyword but in the sense of the functional map()
+    // concept. Here this is really a 1:1 relation between source and target
+    // elements in the two lists. We might need to think of flat_map or similar
+    // concepts.
+    code = map transform[statement] a:FunctionDefinition.code
+)
+
+a:VarReference -> l:Place [place] =
+    l:Place(
+        base=l:BaseVar(
+            name = source.name,
+            symbol_ref = source.symbol_ref,
+        ),
+        // Here we only create an empty list, which is easy with the []-notation
+        // but we still have to check for a solution in case we need some actual
+        // elements.
+        projection = []
+    )
+end
+
+a:LetExpression -> l:Place [place] =
+    l:Place(
+        base=l:BaseVar(
+            // These rules are very similar to the VarReference rules
+            name = source.name,
+            symbol_ref = source.symbol_ref,
+        ),
+        // Here we only create an empty list, which is easy with the []-notation
+        // but we still have to check for a solution in case we need some actual
+        // elements.
+        projection = []
+    )
+end
+
+a:PointerDeref -> l:Place [place] =
+    l:Place(
+        base=transform source.pointer_expression,
+        projection = // TODO: this might be a bit more complex since we want to
+        // extend the projection of the transformed pointer_expression by one
+        // more entry, a l:Deref in this case
+    )
+end
+
+// TODO: any other a:Expr can't be turned into an l:Place and the transformer
+// would need to throw an error in that case. Maybe we need to make this
+// explicit, maybe with something like a:Expr -> l:Place [place] = reject
+
+// TODO: 'by choice' is currently a weird construct to say, that we want to map
+// each entry in the source into a specific target
+a:Operator -> l:BinaryOp by choice
+    Multiply => Multiply,
+    Division => Division,
+    // We will run into situations where a transformation is simply not possible
+    // or at least not easy to describe otherwise. In our example, the LIR
+    // maps assignments to a different node type and thus binary expressions of
+    // type 'Assignment' should be eliminated in LIR. But we still need to
+    // transform AST operations to LIR operations for all other cases. So here
+    // make it explicit that we can really not map an Assignment to LIR from a
+    // pure operators perspective
+    Assignment => reject,
+
+a:ImportDefinition -> a:ImportDefinition
+    // Using some type of marker/special instruction or directive, we can say
+    // that the transformation is trivial because source and target have the
+    // same field names and types and the whole transformation is basically just
+    // some elaborate renaming operation.
+    %trivial
+
+// ----------------------------------------------------------------------
+
+// Goal of the following transformations is to turn a:Expr into l:Statement
+// where some a:Expr need to be turned into a special l:StatementExpression
+// while others have a direct mapping.
+// Looking at this code, it again seems to be a better mental model to think of
+// a transformation as "taking things in the source and looking at what they
+// should be turned into in the target".
+def statement_transform(a:Expr n) -> l:Statement
+    // With the declaration '-> l:Statement' in the function head, we declare
+    // we will only return l:Statement from this function, so any return may
+    // only be one of the l:Statement choice options. Also this currently means,
+    // we may only return exactly one option but not multiple
+    match a:Expr:
+        // There might be a bit of a challenge here since the transformation is
+        // not entirely that trivial. The target language also has an Expr but
+        // this cannot cover all the source elements or covers them differently
+        // so actually we might have to specify that the 'expression' attribute
+        // of the two tree languages needs to be transformed with something
+        // like an 'expression_transform'
+        a:ReturnExpression => l:ReturnStatement [ %trivial ]
+        // On top of simple choice elements, a match statement could also
+        // include a condition or guard clause which further specifies the
+        // exact element to match. In this case, we only match when the 
+        // 'operator' field of the a:BinaryExpression has the value 'Assignment'
+        a:BinaryExpression[.operator=Assignment] =>
+            // We seem to introduce some kind of constructor notation here by
+            // appending the () brackets after the produced target type then
+            // followed by definitions of how the individual fields are to be
+            // initialised.
+            // TODO: How does this match with other kinds of mappings
+            l:StoreStatement(
+                target=l:Place(...),
+                value=expression_transform(...)
+            )
+        a:BinaryExpression[.op!=Assignment] =>
+            l:ExpressionStatement(
+                expression=l:BinaryExpression(
+                    left=expression_transform(a:BinaryExpression.left),
+                    right=expression_transform(a:BinaryExpression.right),
+                    // Here it really looks like we need some way to specify
+                    // that we want to trigger whatever mapping we have defined
+                    // somewhere else for a certain field. Here we experiment
+                    // with a keyword 'transform'
+                    op=transform a:BinaryExpression.operation
+                ),
+                is_dropped=false
+            )
+end
+
+
+// The notation def statement_transform(a:Expr n) -> l:Statement actually
+// introduces a new notation concept for mapping node types. The notation could
+// also just be 'a:Expr -> l:Statement' but since we might need to differentiate
+// different contexts or situations, we could maybe give an explicit context for
+// such a mapping rule like
+
+a:Expr -> l:Statement [statement]
+
+// TODO: the exact notation for the context should be clarified
+
+// Then in a rule we might be able to use it like
+
+left = transform[statement] a:BinaryExpression.left
+
+// where this would mean that we just apply the transformation that applies to
+// the type of the '.left' field of the a:BinaryExpression but in case of
+// multiple transformations, choose the once that gives the context 'statement'.
