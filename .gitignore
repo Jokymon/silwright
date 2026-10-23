@@ -39,3 +39,7 @@ generated/
 
 # Generate VSIX packages
 vscode/**/*.vsix
+
+# To store documents, papers etc. which are only there until they are either
+# included through their concpets or dismissed as relevant for the project
+shelf/
