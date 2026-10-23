@@ -61,13 +61,13 @@ dependency order, and visitor reachability. The model, dump, visitor, and transf
 generators all accept this validated model; passing raw parsed input remains supported and
 invokes the same analysis boundary automatically.
 
-The complete current syntax and generation contract are documented in
-[`docs/language-reference.md`](docs/language-reference.md).
+The [language reference](docs/language-reference.md) documents NDEF and backend-map syntax.
+The [C++ backend reference](docs/cpp_backend.md) documents the generated representation,
+dumping, visitors, and transformers.
 
 ## Definition language
 
-One `.ndef` file describes one module. Its required first declaration is `module <name>`;
-the module name is intended to become the generated C++ namespace.
+One `.ndef` file describes one module. Its required first declaration is `module <name>`.
 
 ```text
 module expressions
@@ -100,61 +100,10 @@ node FunctionDefinition
 end
 ```
 
-- `node` declares a future C++ struct. Each field is written as `<name>: <type>`.
-- `trait` declares reusable fields. A node applies one or more traits with
-  `node FunctionHead with Location, Documented`; generated traits are public base structs.
-- A choice applies traits to all transitively reachable node alternatives with
-  `choice Expr allwith Location, Attributes`. This changes those generated node types globally,
-  including uses outside the choice; overlapping applications are deduplicated.
-- Prefixing a field type with `*`, as in `code: *Expr`, makes it a repeated field.
-- Prefixing a repeated field with `fixed`, as in `arguments: fixed *Expr`, preserves the field's
-  element count in generated transformers. It uses the same C++ storage as `*Expr`.
-- Prefixing a field type with `?`, as in `label: ?identifier`, makes it optional. Built-in,
-  enum, and `value` fields use `std::optional`; pointer-backed node and choice fields remain
-  `std::unique_ptr` because they already represent absence. `*` and `?` cannot be combined.
-- Prefixing a field type with `value`, as in `head: value FunctionHead`, embeds node or choice
-  types directly instead of using `std::unique_ptr`. The modifiers compose as
-  `parameters: *value Parameter` for `std::vector<parameter>`.
-- Prefixing a field type with `transient`, as in `function_scope: transient scope`, emits the
-  C++ member but excludes it from structural dump and visitor generation.
-- `choice` declares a sum type. Its alternatives refer to node types or other declared types.
-- Choice alternatives may span lines. The `|` separator may be placed after the preceding
-  option or at the start of the following option's line, and these layouts may be mixed within
-  one choice definition.
-- `enum` declares a set of new enumerator names rather than references to node types.
-- Enum entries support the same inline, multiline, and mixed `|` layouts as choice alternatives.
-- `end` closes every `node`, `trait`, `choice`, and `enum` declaration.
-- Names currently use ASCII letters, digits, and underscores and cannot start with a digit.
-- `//` starts a comment that continues to the end of the line. Comments may occupy a complete
-  line or follow regular definition code. Multiline comments are not supported. Blank lines
-  are accepted around declarations; blank lines inside declaration bodies are not currently
-  supported. Horizontal spacing is insignificant.
-
-C++ backend types are mapped separately in `backend_cpp.map`:
-
-```text
-@include <cstddef>
-@include "project/symbol.hpp"
-
-identifier: std::string
-number: long
-index: std::size_t
-type: project::type_id
-```
-
-Each mapping has a Silwright type on the left and its C++ type spelling on the right.
-`@include` accepts either a system header in `<...>` or a project header in `"..."`; these
-headers are deduplicated and emitted into the generated model header. For a definition such
-as `simple_lang.ndef`, the parser always looks for `backend_cpp.map` in the same directory.
-See `examples/simple_lang.ndef` and `examples/backend_cpp.map` for complete examples.
-
-## End-to-end C++ example
-
-`examples/simple_lang_main.cpp` constructs a function definition containing several expression
-nodes and writes its YAML-like dump to `std::cout`. `examples/CMakeLists.txt` defines the
-`simple_lang_example` C++20 executable from the sample and generated translation units. The
-example files are currently provided as a proof of concept; automated C++ compilation is not
-yet part of the project checks.
+Nodes, traits, choices, enums, field modifiers, and backend-map files are specified in the
+[language reference](docs/language-reference.md). See `examples/simple_lang.ndef` and
+`examples/backend_cpp.map` for complete inputs. Their C++ interpretation and the end-to-end
+example are described in the [C++ backend reference](docs/cpp_backend.md).
 
 ## Development setup
 
@@ -249,67 +198,3 @@ git push origin vscode-v0.7.0
 The VS Code extension release workflow runs the tests, packages the `.vsix`, and attaches it
 to a dedicated GitHub Release. The workflow rejects a tag when its version does not match
 `package.json`.
-
-## Requirements and decisions
-
-This section is maintained as requirements are discovered or changed during development.
-
-- Node fields and choice alternatives reference types by name. Enums introduce values by
-  name. This distinction prevents enum values from being mistaken for type references.
-- Backend types and their C++ spellings live in the required `backend_cpp.map` file beside
-  each parsed `.ndef` file. C++ is currently selected statically; no dynamic backend selection
-  is supported yet.
-- `backend_cpp.map` may declare generated model-header dependencies with `@include <header>`
-  and `@include "header"`. Includes preserve declaration order and duplicates are removed.
-- Generated `.hpp` and `.cpp` files use the `.ndef` basename and are written beside it. The
-  module name is used directly as the C++ namespace.
-- Definition names are converted from CamelCase to snake_case. Enum names additionally use
-  a `_t` suffix. Enum fields are scalar; node and choice fields use `std::unique_ptr`; built-in
-  fields use their mapped C++ spelling.
-- Traits generate public base structs and do not participate in visitor traversal. Choices can
-  propagate traits transitively to their node alternatives with `allwith`. Trait fields are
-  flattened into node dump output. Repeated applications are deduplicated; unknown traits and
-  inherited/local field-name collisions are rejected before C++ is emitted.
-- Transient fields hold tooling or later-stage state that belongs on the in-memory node but is
-  not part of its structural representation. They are generated normally but omitted from
-  dump output and visitor child traversal.
-- Repeated fields use `std::vector` around the otherwise generated field type. For example,
-  `*identifier` becomes `std::vector<std::string>` and `*Expr` becomes
-  the generated `expr_list` alias for `std::vector<std::unique_ptr<expr>>`.
-- Fixed repeated fields use the same C++ storage as repeated fields, but generated transformers
-  preserve one output slot per input slot. Null elements remain null; non-null elements must
-  produce exactly one replacement.
-- Optional fields use `std::optional` around the otherwise generated value type. Missing
-  optional values and null node pointers are both emitted as `null` by generated dumpers.
-- Value fields require complete C++ types. The generator dependency-orders affected structs
-  and rejects recursive value-member cycles. Built-in and enum fields are already values, so
-  applying `value` to them has no additional effect.
-- Choices are `std::variant` aliases. Node structs are forward-declared before choice aliases,
-  then defined afterward. Choice-to-choice dependencies are ordered, and cycles between
-  choice aliases are rejected because C++ aliases cannot be forward-declared.
-- Parsing currently validates syntax only. Duplicate declarations, unresolved references,
-  naming rules for generated C++, mapping conflicts, and recursive type constraints remain
-  future semantic-validation decisions.
-- Generated headers currently include `<memory>`, `<optional>`, `<string>`, `<variant>`, and
-  `<vector>`, plus dependencies declared by the backend map.
-- Dump support is generated separately as `_dump.hpp`, `_dump.ipp`, and `_dump.cpp`. The IPP
-  contains template implementations and is included at the end of the dump header.
-- Generated `dump` overloads emit YAML-like objects with four-space nesting, an artificial
-  `_type` field, `.ndef` field names, lists for repeated fields, and `null` for null pointers.
-  Strings are quoted and escaped, and enums use their original `.ndef` entry names.
-- Scalar values pass through an inline generic `dump_value` customization point. Its default
-  uses `operator<<`; context-sensitive custom types can provide a more-specific overload in
-  the value type's namespace so it is found through argument-dependent lookup. A mapped type
-  that is neither streamable nor customized produces a targeted compile-time diagnostic.
-- Mutable visitor support is generated as `_visitor.hpp` and `_visitor.cpp`. Public `visit`
-  overloads accept every node and choice as an entry point. Node traversal calls protected
-  virtual `enter` and `leave` hooks around pointer-backed children; scalars and `value` fields
-  are deliberately skipped. Definitions referenced exclusively through `value` fields are
-  omitted from the visitor API, while unreferenced definitions remain possible entry points.
-  Derived visitors can override only the hooks they need. Visitors also provide protected
-  `replace_<choice>` helpers for pointer-backed choice children; replacements are consumed by
-  the parent traversal immediately after each child visit.
-- Mutable transformer support is generated as `_transformer.hpp` and `_transformer.cpp`.
-  Public `rewrite` overloads perform bottom-up rewrites of pointer-backed node and choice
-  fields. Concrete node hooks are split into `visit_single` and `visit_multiple`; repeated
-  choice rewrites use generated `<choice>_list` aliases.

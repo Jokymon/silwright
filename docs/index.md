@@ -33,6 +33,7 @@ The generated model, dump support, visitor, and transformer files are written be
 `.ndef` file.
 Generated C++ currently requires C++20.
 
-See the [language reference](language-reference.md) for the complete syntax and generation
-contract. The design decisions in `docs/decisions/` record the alternatives considered for
-important language and backend choices.
+See the [language reference](language-reference.md) for the NDEF and backend-map syntax, and
+the [C++ backend reference](cpp_backend.md) for the generated representation and APIs. The
+design decisions in `docs/decisions/` record the alternatives considered for important
+language and backend choices.

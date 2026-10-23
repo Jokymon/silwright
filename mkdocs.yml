@@ -14,7 +14,9 @@ theme:
 
 nav:
   - Home: index.md
-  - Language reference: language-reference.md
+  - Language reference:
+      - NDEF and backend maps: language-reference.md
+      - C++ backend: cpp_backend.md
   - Design decisions:
       - Validation diagnostic severity: decisions/0001-validation-diagnostic-severity.md
       - User-facing diagnostic format: decisions/0002-user-facing-diagnostic-format.md

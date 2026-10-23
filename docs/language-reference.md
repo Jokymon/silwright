@@ -1,17 +1,21 @@
-# NDEF language reference
+# Language reference
 
-This document describes the currently supported NDEF language and C++ backend-map contract.
-It records existing behavior; incompatible extensions require an explicit design decision.
+Silwright has two small input languages. NDEF files describe the structure of a node model,
+while backend map files connect otherwise external attribute types to a generation backend.
+NDEF does not assign a target-language representation, and the map language preserves target
+type spellings without interpreting them. The currently implemented
+[C++ backend](cpp_backend.md) defines how both inputs are represented.
 
-## Files and lookup
+## NDEF language reference
+
+### Files
 
 - A node-definition file uses the `.ndef` suffix.
 - One `.ndef` file contains exactly one module.
-- C++ generation requires `backend_cpp.map` in the same directory as the `.ndef` file.
-- Backend selection and the backend-map filename are currently fixed.
-- Generated files use the `.ndef` basename and are written beside it.
+- The module declaration must be the first declaration in the file.
+- Definitions may refer to declarations that occur later in the same file.
 
-## Lexical rules
+### Lexical rules
 
 Names use ASCII letters, digits, and underscores and cannot begin with a digit:
 
@@ -34,51 +38,53 @@ module node trait choice enum end with allwith value transient fixed
 some name positions—`value`, for example, remains a legal field name—but keyword names should
 not be used as referenced types where they would be parsed as modifiers.
 
-## Grammar overview
+### Grammar overview
 
 The following EBNF is descriptive. `newline` is significant because declarations and fields
 are line-oriented.
 
 ```text
-file          = { newline }, module, newline, { definition } ;
-module        = "module", name ;
+file           = { newline }, module, newline, { definition } ;
+module         = "module", name ;
 
-definition    = node | trait | choice | enum ;
+definition     = node | trait | choice | enum ;
 
-node          = "node", name, [ trait-list ], newline,
-                { field }, "end", newline ;
-trait-list    = "with", name, { ",", name } ;
+node           = "node", name, [ trait-list ], newline,
+                 { field }, "end", newline ;
+trait-list     = "with", name, { ",", name } ;
 
-trait         = "trait", name, newline,
-                { field }, "end", newline ;
+trait          = "trait", name, newline,
+                 { field }, "end", newline ;
 
-field         = name, ":",
-                [ "fixed" ], [ "*" | "?" ], [ "value" ], [ "transient" ],
-                name, newline ;
+field          = name, ":",
+                 [ "fixed" ], [ "*" | "?" ], [ "value" ], [ "transient" ],
+                 name, newline ;
 
-choice        = "choice", name, [ all-trait-list ], newline,
-                option-list, newline, "end", newline ;
+choice         = "choice", name, [ all-trait-list ], newline,
+                 option-list, newline, "end", newline ;
 all-trait-list = "allwith", name, { ",", name } ;
 
-enum          = "enum", name, newline,
-                option-list, newline, "end", newline ;
+enum           = "enum", name, newline,
+                 option-list, newline, "end", newline ;
 
-option-list   = name, { "|", name } ;
+option-list    = name, { "|", name } ;
 ```
 
 Within an option list, a newline may appear directly before or after `|`. Inline, leading-pipe,
 trailing-pipe, and mixed layouts are accepted. A trailing `|` without another option is invalid.
 
-## Modules
+### Modules
 
 ```text
 module expressions
 ```
 
-The module name is emitted directly as the C++ namespace. It must therefore also be a valid,
-non-keyword C++ identifier.
+A module contains all declarations in the file and gives the model a name. How that name is
+represented in generated output is a backend concern.
 
-## Nodes and fields
+### Nodes and fields
+
+A node declares a structured type consisting of named fields:
 
 ```text
 node BinaryExpression
@@ -88,14 +94,11 @@ node BinaryExpression
 end
 ```
 
-A node generates a `snake_case` C++ struct. Fields resolve as follows:
+A field type may name a node, choice, or enum declared in the module, or an external attribute
+type supplied by a backend map. Traits are applied with `with` and cannot be used as ordinary
+field types.
 
-- A backend-mapped type uses its configured C++ spelling.
-- An enum is stored as its generated enum type.
-- A node or choice reference normally uses `std::unique_ptr<T>`.
-- A `value` node or choice reference embeds `T` directly.
-
-### Field modifiers
+#### Field modifiers
 
 Modifiers have the fixed order shown below:
 
@@ -103,15 +106,15 @@ Modifiers have the fixed order shown below:
 field: [fixed] [* | ?] [value] [transient] Type
 ```
 
-- `*` generates `std::vector<T>` around the otherwise generated representation.
-- `fixed` marks a repeated field whose element count must be preserved by generated
-  transformers. It is valid only together with `*` and currently uses the same C++ storage as
-  the corresponding non-fixed repeated field.
-- `?` generates `std::optional<T>` for backend-mapped, enum, and `value` types. A pointer-backed
-  node or choice remains `std::unique_ptr<T>`, which already represents absence.
-- `value` embeds node and choice types instead of using `std::unique_ptr`.
-- `transient` emits the C++ member but excludes it from dump and visitor structure.
-- `*` and `?` are mutually exclusive.
+- `*` makes a field repeated.
+- `fixed` marks a repeated field whose element count must be preserved by structural
+  transformations. It is valid only together with `*`.
+- `?` makes a field optional. `*` and `?` are mutually exclusive.
+- `value` requests value storage for node and choice fields instead of the backend's default
+  relationship representation. Backend-mapped types and enums are already values, so the
+  modifier has no additional effect on them.
+- `transient` keeps the field in the generated in-memory model but excludes it from structural
+  dumping, visiting, and transformation.
 
 Examples:
 
@@ -122,7 +125,10 @@ metadata: ?value Metadata
 function_scope: transient scope
 ```
 
-## Choices
+The concrete representation of repetition, optionality, value storage, and ordinary node
+relationships is defined by each backend.
+
+### Choices
 
 ```text
 choice Expr allwith Location, Attributes
@@ -131,45 +137,18 @@ choice Expr allwith Location, Attributes
 end
 ```
 
-A choice generates a `snake_case` `std::variant` alias. Alternatives must resolve to nodes or
-other choices. A node may be listed as a direct alternative of at most one choice in a module;
-nesting one choice inside another does not give the nested nodes another direct membership.
-Choice aliases are dependency-ordered; cyclic choice aliases are invalid.
+A choice declares a sum of nodes or other choices. A node may be listed as a direct alternative
+of at most one choice in a module; nesting one choice inside another does not give the nested
+nodes another direct membership. Cyclic choice aliases are invalid.
 
 An `allwith` list applies its traits to every node reachable through the choice alternatives.
-Propagation is transitive through nested choices and changes the generated node types globally,
-including uses of those nodes outside the annotated choice. Explicit node traits are ordered
-before inferred choice traits; inferred traits follow choice declaration order and their order
-within each `allwith` list. Repeated applications, including overlap with an explicit `with`,
-are deduplicated at the first occurrence.
+Propagation is transitive through nested choices and affects uses of those nodes outside the
+annotated choice as well. Explicit node traits are ordered before inferred choice traits;
+inferred traits follow choice declaration order and their order within each `allwith` list.
+Repeated applications, including overlap with an explicit `with`, are deduplicated at the first
+occurrence.
 
-When a module contains an `allwith` choice, the generated model header also provides
-`as_trait<Trait>(choice)`. It recursively unwraps nested choices and returns a mutable or const
-reference to the requested trait, matching the choice argument:
-
-```cpp
-expr& value = /* ... */;
-as_trait<location>(value).location = source_range{};
-
-const expr& const_value = value;
-const location& where = as_trait<location>(const_value);
-```
-
-The accessor assumes that the requested trait is present on every reachable node. Requesting a
-trait that is not common to the choice produces a C++ template compilation error.
-
-When a choice is used by at least one repeated, pointer-backed field such as `code: *Expr`, the
-C++ backend also generates one reusable list alias:
-
-```cpp
-using expr_list = std::vector<std::unique_ptr<expr>>;
-```
-
-Repeated pointer-backed choice fields use this alias in generated structs.
-Repeated `value` choice fields do not generate this alias because their representation is
-`std::vector<expr>` instead.
-
-## Enums
+### Enums
 
 ```text
 enum BinaryOp
@@ -177,10 +156,10 @@ enum BinaryOp
 end
 ```
 
-An enum generates `enum class <snake_case_name>_t`. Enumerator spelling is preserved exactly.
-Enum option lists use the same flexible layout as choices.
+An enum declares a distinct type and introduces the listed values. The values are names, not
+references to other declarations. Enum option lists use the same flexible layout as choices.
 
-## Traits
+### Traits
 
 ```text
 trait Location
@@ -192,142 +171,108 @@ node FunctionHead with Location
 end
 ```
 
-A trait generates a public C++ base struct. Nodes may apply one or more comma-separated traits,
-and choices may propagate them with `allwith`. Traits cannot inherit, appear as choice
-alternatives, or receive visitor overloads. Trait fields are flattened into derived-node dump
-output. Repeated applications are deduplicated; field collisions across traits and local fields
-are invalid. Structured node or choice values cannot currently be
-embedded by value inside traits because generated traits precede complete node definitions.
+A trait declares reusable fields. A node applies one or more comma-separated traits with
+`with`, and a choice can propagate traits with `allwith`. Traits cannot inherit from other
+traits or appear as choice alternatives. Repeated applications are deduplicated; field-name
+collisions between applied traits or between a trait and a node are invalid.
 
-## Semantic validation
+### Semantic validation
 
-Before generation, semantic analysis rejects invalid input. Validation and generation diagnostics
-are errors-only: a failure stops the workflow, and accepted input does not produce warnings.
-The CLI renders known failures as numbered, source-aware diagnostics with a one-based
-`file:line:column` location, source line, and caret marker.
+Validation and generation diagnostics are errors-only: a failure stops the workflow, and
+accepted input does not produce warnings. The CLI renders known failures as numbered,
+source-aware diagnostics with a one-based `file:line:column` location, source line, and caret
+marker.
 
 Semantic analysis rejects:
 
-- Duplicate declarations, fields, enum entries, choice alternatives, and mappings.
+- Duplicate declarations, fields, enum entries, and choice alternatives.
 - Unknown field types, traits, and choice alternatives.
 - Traits used as ordinary field types or choice alternatives.
 - A node listed as a direct alternative of more than one choice.
 - Invalid modifier combinations.
-- Cyclic choice aliases and recursive by-value node dependencies.
-- Invalid C++ identifiers, namespaces, and reserved keywords.
-- Generated C++ name collisions, including snake_case and enum `_t` collisions.
-- Collisions with reserved generated names such as `visitor` and `transformer`.
+- Cyclic choices and recursive by-value node dependencies.
+- Field collisions introduced through traits.
 
-A field type that is neither a declared NDEF type nor backend-mapped is reported as unknown.
-The analyzer cannot distinguish a misspelled declaration from a missing backend mapping.
+A field type that is neither declared in the NDEF module nor provided by the backend map is
+unknown. The analyzer cannot distinguish a misspelled declaration from a missing backend
+mapping. Backends may impose additional naming and representation restrictions.
 
-## C++ name conversion and ordering
-
-Definition names are converted from CamelCase to snake_case. Acronym boundaries are supported;
-for example, `HTTPServer` becomes `http_server`. Field and enum-entry spellings are not changed.
-
-Source order does not determine whether references are valid. Generation emits declarations in
-an order required by C++ dependencies: enums, forward declarations, traits, dependency-ordered
-choices, and dependency-ordered nodes. Order within otherwise independent groups remains stable.
-
-## Visitor contract
-
-Each module generates a mutable `visitor` class:
-
-- Public `visit(T&)` overloads provide node and choice entry points.
-- Choice visits dispatch with `std::visit`.
-- Node visits call virtual `enter(T&)`, traverse children, then call virtual `leave(T&)`.
-- Only non-`value`, non-`transient` node and choice fields are traversed.
-- Null pointers are skipped; repeated pointer fields visit every non-null element.
-- Pointer-backed choice fields support replacement requests from derived visitors. For each
-  visitable choice, the visitor exposes protected `replace_<choice>(...)` helpers accepting
-  either one `std::unique_ptr<choice>` or a choice-list replacement. The base visitor records
-  explicit replacement state, consumes it immediately after the child visit, and then clears it.
-- Single choice fields accept zero or one requested replacement; zero deletes the child and more
-  than one trips an assertion. Repeated choice fields accept any number of replacements per
-  child. Fixed repeated choice fields require exactly one replacement per non-null child.
-- Definitions used exclusively through `value` or `transient` contexts are omitted, while
-  unreferenced definitions remain available as roots.
-
-## Transformer contract
-
-Each module generates a mutable bottom-up `transformer` class:
-
-- Public `rewrite(std::unique_ptr<T>)` overloads provide node and choice entry points.
-- Choice rewrites dispatch with `std::visit` and wrap concrete node replacements back into
-  the choice variant.
-- Rewrites first rewrite children and then call a protected virtual node hook.
-- Nodes that can appear in repeated pointer-backed contexts use `visit_multiple(T&)` and return
-  `std::vector<std::unique_ptr<T>>`; repeated choices use the generated `<choice>_list` alias.
-- Other pointer-backed nodes use `visit_single(T&)` and return `std::unique_ptr<T>`.
-- If a concrete node is a direct alternative of exactly one transformable choice, its rewrite
-  and hook return type is promoted to that choice type. For example, a `Number` alternative of
-  `Expr` returns `std::unique_ptr<expr>` or `expr_list`, allowing replacements with any
-  expression alternative.
-- Because each concrete node may be a direct alternative of at most one choice, a promoted
-  rewrite has one unambiguous choice return type. Promoted nodes cannot be used directly in
-  pointer-backed structural fields; they must be reached through that choice type.
-- Multiple-capable status propagates through choices: a repeated choice makes its alternatives
-  multiple-capable, and a choice containing a multiple-capable alternative is also
-  multiple-capable.
-- Default hooks move the rewritten node into a new owning pointer, or into a one-element list
-  for multiple-capable nodes.
-- Only non-`value`, non-`transient` node and choice fields are rewritten. Trait fields are not
-  traversed, matching the visitor implementation.
-- Null single rewrites return `nullptr`; null multiple rewrites return an empty list.
-- If a single field targets a multiple-capable type, zero replacements become `nullptr`, one
-  replacement is moved back into the field, and more than one replacement trips an assertion.
-- Fixed repeated fields preserve one output slot per input slot. Null input elements remain
-  null elements; non-null elements must rewrite to exactly one replacement.
-
-## Dump contract
-
-Generated dump functions produce a YAML-like structural representation:
-
-- Four spaces are used per nesting level.
-- Every node begins with `_type` containing its original NDEF name.
-- Field names use their original NDEF spelling.
-- Repeated fields are lists; empty lists emit `[]`.
-- Missing optionals and null pointers emit `null`.
-- Strings are quoted and escaped.
-- Enums emit original entry names.
-- Trait fields are flattened into the node object.
-- Transient fields are omitted.
-
-Backend scalar values use the inline `dump_value` customization point. Streamable values use
-`operator<<`; applications can provide a more-specific overload in the value type's namespace
-for argument-dependent lookup and context-sensitive formatting.
-
-Strict YAML compatibility is not yet guaranteed and remains a documented design question.
-
-## C++ backend map
-
-`backend_cpp.map` contains include directives and type mappings:
-
-```text
-@include <cstddef>
-@include "project/scope.hpp"
-
-index: std::size_t
-scope: std::unique_ptr<scope>
-```
-
-Rules:
-
-- `@include` accepts exactly `<...>` or `"..."` spelling.
-- Includes are unconditional, retain declaration order, and are deduplicated against generated
-  standard includes.
-- A mapping uses `name: C++ type spelling`.
-- C++ type spelling is the trimmed remainder of the line up to `#` or the newline.
-- Backend-map comments begin with `#`, unlike NDEF `//` comments.
-- Duplicate mapping names are invalid; unused mappings are allowed.
-- The generated model header includes configured headers before emitting declarations.
-
-One behavior requires a future explicit decision: if a backend mapping has the same name as a
-declared NDEF type, current model generation gives the backend mapping precedence for fields.
-Definitions should avoid this collision until the rule is resolved.
-
-## Language versioning
+### Language versioning
 
 NDEF files do not declare a language version. Version syntax is deliberately deferred because
 the format currently has limited distribution and no demonstrated compatibility need.
+
+## Backend map language reference
+
+### Purpose
+
+A backend map associates external NDEF attribute types with target representations. This keeps
+target-language type spellings and dependencies out of the structural NDEF model.
+
+For example, the following model uses the external types `identifier` and `source_range`:
+
+```text
+node NameExpression
+    name: identifier
+    location: source_range
+end
+```
+
+A backend map must supply those types before a backend can generate the model:
+
+```text
+identifier: target-specific string type
+source_range: target-specific source-range type
+```
+
+The text to the right of `:` is opaque to the map language. Its syntax and meaning belong to
+the selected backend.
+
+### Syntax
+
+A map file is line-oriented and contains type mappings and dependency directives:
+
+```text
+map-file   = { newline | mapping | dependency } ;
+mapping    = name, ":", target-spelling, newline ;
+dependency = "@include", include-spelling, newline ;
+```
+
+Names follow the same ASCII identifier rule as NDEF names. A target spelling is the trimmed
+remainder of its line up to `#` or the newline. It may contain spaces and punctuation. Map-file
+comments begin with `#` and continue through the end of the line.
+
+### Type mappings
+
+```text
+identifier: target-specific string type
+index: target-specific size type
+```
+
+The left side is the type name used by NDEF fields. The right side is passed to the backend as
+the requested target representation. Duplicate mapping names are invalid; unused mappings are
+allowed.
+
+If a mapping and an NDEF declaration have the same name, the current implementation gives the
+mapping precedence when resolving fields. Definitions should avoid this collision until that
+behavior receives an explicit design decision.
+
+### Dependency directives
+
+```text
+@include <system-dependency>
+@include "project-dependency"
+```
+
+`@include` records a backend dependency. Its spelling must be enclosed in either angle brackets
+or double quotes and is otherwise preserved. The selected backend determines what inclusion
+means, where the dependency is emitted, and whether duplicate dependencies are retained. The
+directive name and delimiters reflect the currently implemented format; they do not prescribe
+how future backends must represent dependencies in their target languages.
+
+### Backend selection and file discovery
+
+The map language itself does not select a backend or prescribe a filename. Those are integration
+decisions made by the command-line workflow or embedding application. The current
+[C++ backend](cpp_backend.md#inputs-and-generated-files) uses a sibling file named
+`backend_cpp.map` and gives `@include` its C++ header meaning.
